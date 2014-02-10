@@ -1,0 +1,144 @@
+\documentclass{acm_proc_article-sp}
+
+\begin{document}
+
+\title{An Application of Spatially Correlated Poisson Hidden Markov Models for Online Supervised Learning of Bikeshare Data}
+
+\numberofauthors{1}
+\author{
+\alignauthor
+Walter Dempsey\\
+       \affaddr{University of Chicago}\\
+       \affaddr{5734 S. University Avenue}\\
+       \affaddr{Chicago, IL}\\
+       \email{wdempsey@galton.uchicago.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+\end{abstract}
+
+
+\terms{Log Gaussian Cox Processes, Hidden Markov Model, Online Learning}
+
+\section{Introduction}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item General explanation of technique
+\item Do not focus on issues of the analysis -> City has bikes and we need to predict the number at a station
+\item We wish to have informed prediction and probabilities
+\item We wish to have a means for prediction in the case (1) a new system, (2) a new station in a city.
+\item PHMM Approach -> Worry about spatial and temporal
+\item Online Learning System for Updating the Parameters
+\item Fast Algorithms -> Leverage Fast Algorithms for fitting the basic models
+\end{enumerate}
+\vspace{0.5cm}
+
+
+\section{Poisson Hidden Markov Model}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item Introduce the Basic Poisson HMM Model
+\end{enumerate}
+\vspace{0.5cm}
+
+
+\section{The Bikeshare Problem}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item Introduce Bikeshare
+\item The counts are multinomial in a manner but highly flat (need to think of them as rates)
+\item Define the Dual PHMM process
+\item Introduce the Censoring Issue and the Correlation B/W the Processes
+\end{enumerate}
+\vspace{0.5cm}
+
+\section{Spatial-Temporal PHMM}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item The stations are not in isolation
+\item We should leverage information about other stations
+\item We use a log-Gaussian Cox Process to do this
+\item Problems are things like (1) Takes a while to fit, (2) Our parameters are temporally dependent 
+\item How do we choose the covariates?
+\end{enumerate}
+\vspace{0.5cm}
+
+\section{A Parallel Approximate Estimation Algorithm}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item The Gaussian Process Leads to a Complete Graphical Model
+\item However the dependency on the other far away nodes is negligible.
+\item Therefore, we can approximate the Gaussian Process by an Approximate Block Diagonal GP
+\item Similarity to CRFs (but we have a temporal component)
+\item This allows us to fit models separately.
+\item Problem is boundaries are not distinct
+\item End with discussion of Estimation
+\end{enumerate}
+\vspace{0.5cm}
+
+\section{Online Learning: Algorithm and Prediction}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item Want a manner to update paramaters in an online setting as the `latest numbers' provide the most updated solutions
+\item We want to do this in a very simple way
+\item Use the online algorithms and approximate block models
+\end{enumerate}
+\vspace{0.5cm}
+
+\section{Prediction}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item Simple : Station with data and neighboring stations
+\item Add a new Station:   Need to infer the model for that station
+\item Cluster Analysis
+\item What about a new system?  Assume the covariates are okay, then we still need to do a cluster analysis
+\end{enumerate}
+\vspace{0.5cm}
+
+
+
+\section{Experimental Results}
+
+\vspace{0.25cm}
+
+\subsection{Washington D.C. Bikeshare}
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item Explain the Complete Dataset
+\item Include Maps
+\item Explain how the `data' is common to Chicago given the layout of the city but it will not be common to other cities
+\item 
+\end{enumerate}
+\vspace{0.5cm}
+
+\subsection{Performance Indices}
+
+\vspace{0.25cm}
+{\bf SECTION OUTLINE}
+\begin{enumerate}
+\item How do we measure success?
+\item We need good short term (`15 min' predictions) vs long term predictions of counts
+\item We also want good prediction of the probability of being empty or full?
+\item Need baseline and alternatives for comparison
+\end{enumerate}
+\vspace{0.5cm}
+
+\section{Summary}
+
+
+\end{document}
