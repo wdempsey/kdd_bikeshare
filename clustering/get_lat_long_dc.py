@@ -1,7 +1,7 @@
 import os
 import psycopg2
 
-conn = psycopg2.connect(database='bikeshare',user='bikeshare',host='bikeshare.ctmvy2bluoic.us-west-2.rds.amazonaws.com',password="bikeshare")
+conn = psycopg2.connect(database=os.environ.get('dbname'),user=os.environ.get('dbuser'), host=os.environ.get('dburl'),password=os.environ.get("dbpw"))
 
 cur = conn.cursor() 
 
