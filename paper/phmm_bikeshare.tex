@@ -2,7 +2,7 @@
 
 \begin{document}
 
-\title{An Application of Spatially Correlated Poisson Hidden Markov Models for Online Supervised Learning of Bikeshare Data}
+\title{Addressing Redistribution in Bikeshare Using Cox Processes and Online Supervised Learning}
 
 \numberofauthors{1}
 \author{
@@ -17,28 +17,24 @@ Walter Dempsey\\
 \maketitle
 
 \begin{abstract}
+A bicycle sharing system (bikeshare) is a service in which individuals can check-out bicycles from stations for a short period of time and drop them off at any of the stations in the system. The main purpose of bikeshare is to provide transportation for short trips, and it has become common in many cities including New York, Paris, and Beijing. One of the issues with bikeshare is the possible imbalance of bikes across stations, specifically that some stations may have no bikes to check-out while other stations have no slots for arriving bikes. Many cities employ re-distribution techniques on an ad hoc basis. In order to improve the redistribution process, we must estimate the expected number of bikes at a station at some point in the future, as well as the chance that the station becomes empty or full in that time window. To do this, we model the arrival and departure of bikes as a log Gaussian Cox Process. We build a block approximation of the underlying Gaussian processes by clustering  neighborhoods, which will allow for parallel estimation. Moreover, we build online methods for updating the parameters from streaming station data. In order to assess performance, we apply these techniques to the Washington D.C. bikeshare data. We end with a brief discussion of how our approach can be used in analyzing new stations without sufficient data and as well as new networks/cities. 
 \end{abstract}
 
 
-\terms{Log Gaussian Cox Processes, Hidden Markov Model, Online Learning}
+\terms{Log Gaussian Cox Processes, Block-Approximate Gaussian Processes, Parallel Algorithms, Online Learning}
 
 \section{Introduction}
 
-\vspace{0.25cm}
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item General explanation of technique
-\item Do not focus on issues of the analysis -> City has bikes and we need to predict the number at a station
-\item We wish to have informed prediction and probabilities
-\item We wish to have a means for prediction in the case (1) a new system, (2) a new station in a city.
-\item PHMM Approach -> Worry about spatial and temporal
-\item Online Learning System for Updating the Parameters
-\item Fast Algorithms -> Leverage Fast Algorithms for fitting the basic models
-\end{enumerate}
-\vspace{0.5cm}
+Bicycle Sharing systems have become ubiqutious over the past several years, providing an alternative mode of transportation and improving the connectivity of their respective cities.  These networks (typically referred to as bikeshare) consist of a number of stations distributed throughout the city with individuals able to check-out bicycles from stations for a short period of time before dropping them off at another station in the system.  A common issue with bikeshare is that traffic patterns commonly result in bike imbalance across stations, with some stations being either empty or full.  We call these {\bf extreme} stations.  This leads to delays as bikeshare users must find alternate stations, while also lowering overall ridership due to reliability concerns. Bikeshare systems tackle this issue by some form of redistribution; however, the methods for redistribution of bikes is ad hoc and may be sub-optimal.
+
+For a given time in the future, we wish to predict the number of bikes at the station as well as the probability of the station becoming extreme at some point in this time window given its current state as well as auxiliary variables.  This will allow us to predict extreme stations as well as provide an estimated optimal number of bikes per station during redistribution to avoid extreme events in the next time window.
+
+We model arrival and departure of bikes at each station as a pair of correlated Poisson Processes.  We propose then modeling the entire bikeshare system as a set of correlated Poisson Processes, where two pairs are correlated based on their spatial proximity.  This set is therefore modeled as a log-Gaussian Cox Process in which we capture station-level, temporal, and spatial random effects.  
+
+This approach is computationally intensive, and therefore we propose approximation methods for estimation, which allow us to run estimation in parallel and provide necessary speedups at the cost of some inexactness.  The bikeshare data analyzed is also streaming, and therefore we provide an online algorithm which updates parameter estimates given the new observations.  This allows us to update models given new data without re-fitting the entire model everytime.  We end with an application of our techniques to Washington D.C. bikeshare data.  We analyze the performance, and provide methods for prediction of new stations given estimation from surrounding stations.
 
 
-\section{Poisson Hidden Markov Model}
+\section{Inhomogenous Poisson Processes}
 
 \vspace{0.25cm}
 {\bf SECTION OUTLINE}
