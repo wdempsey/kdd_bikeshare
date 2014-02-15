@@ -34,42 +34,69 @@ We model arrival and departure of bikes at each station as a pair of correlated 
 This approach is computationally intensive, and therefore we propose approximation methods for estimation, which allow us to run estimation in parallel and provide necessary speedups at the cost of some inexactness.  The bikeshare data analyzed is also streaming, and therefore we provide an online algorithm which updates parameter estimates given the new observations.  This allows us to update models given new data without re-fitting the entire model everytime.  We end with an application of our techniques to Washington D.C. bikeshare data.  We analyze the performance, and provide methods for prediction of new stations given estimation from surrounding stations.
 
 
-\section{Inhomogenous Poisson Processes}
+\section{Arrival and Departure Processes}
 
-\vspace{0.25cm}
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item Introduce the Basic Poisson HMM Model
-\end{enumerate}
-\vspace{0.5cm}
+We start by considering the temporal process at a given station.  Let $Y_i (t)$ denote the number of bikes at the station at time $t$.  The bike count is an integer-valued process with jumps.  We use $Y(t)$ to define a pair of counting processes which we then model.
+
+The {\bf arrival counting process}, $N_i^{a} (t)$ can be defined as the number of bikes arriving at the station up to time~$t$.  Assuming a finite number of bike arrival times in any interval, we can then define these counting processes as:
+\begin{align}
+N^{a} (t) &= \sum_{s < t} \left | Y_i (s) - Y_i (s-) \right | {\bf 1} \left[ Y_i (s) - Y_i (s-)  > 0 \right] 
+\end{align}
+The {\bf departure counting process}, $N_i^{d} (t)$ can be defined likewise for bikes leaving the station.  A consideration is that a station which is empty cannot have departures.  Therefore, $Y_i (t) = 0$ in some interval~$[t, t+\delta]$ implies $N_i^{d} (t+\delta) -N_i^{d} (t) = 0$.   Let $A_{d}$ be the set of all such windows.  Then, we assume the departure counting process to be an inhomogenous Poisson point process on the complement of this set, $\mathbb{R}^{+} - A_{d}$.  We consider the same to be true of the arrival process and the window of all times for which the station is full, $A_{f}$.
+
+For now, we ignore these constraints on the process.  We assume that at a station, the arrival and departure counting processes are correlated.  This implies that we can model the pair as a Cox process where the rate parameters includes a station block effect. That is, $N_i^(a) (t)$ ($N_i^{d} (t)$ respectively) are poisson processes with rate parameter $\lambda_i^{a} (t)$ ($\lambda_i^{d} (t)$ respectively) where
+\begin{align}
+\log \left( \lambda_i^{a} (t) \right) = \mu^{a}_i(t) + b_i
+\end{align}
+\noindent where $b_i$ is a random station effect.  The rate parameter for the departure process can be defined similarly.
+
+\section{Bikeshare System}
+
+We now consider the complete bikeshare system.  Stations in close geographic proximity provide auxiliary information which should be leveraged.  For example, if a station has many arrivals in a given morning, this is a strong indicator that the number of arrivals at a neighboring station will also be high.  We wish to introduce the spatial dependency into our current model.  
+
+We use a log-Gaussian Cox Process to do this in which spatial dependence is captured through random effects in the stochastic rate parameters.  Let $N_i (t) = (N_i^(a) (t), N_i^{d} (t))$ be the pair of counting processes for station~$i$.  Then we can assume that the arrival rate parameters are associated as are the departure rate parameters.  So that
+\begin{align}
+\log \left( \lambda_i^{a} (t) \right) = \mu^{a}_i(t) + b_i + Z(t;i)
+\end{align}
+\noindent where $Z(t;i)$ is a mean-zero gaussian process with covariance that may depend on both time~$t$ and space~$i$.  We can incorporate the station effects into the gaussian process model.  We then consider a simple separable variance components model :
+\begin{align*}
+\text{cov} ( Z(t;i) , Z(t^\prime; j) ) =& \sigma_0^2 \delta_{t t^\prime}  \delta_{i j} + \sigma_1^2  \delta_{i j} \\
+&+ \sigma_2^2 \exp \left( -\frac{ d(i,t),(j,t)) }{\lambda} \right)
+\end{align*}
+\noindent where $d ( (i,t) , (j,t))$ is a specified distance metric. In our work we consider the $l_2$ distance.  The first term is measurement error at time~$t$ at station~$i$, the second is the random station effect, and the third is a general mean associated with all the arrival parameters.
+
+Covariates can be chosen to account for temporal trends.  We can choose a factor model for $\mu^{a})i (t)$ which would model fixed effects attributable to time of day, month, and year, or a basis expansion in terms of low-order Fourier terms.  In this case, the distance metric will only depend on the location of the stations and the third term will only be included when $t$ and $t^\prime$ are equal.
+
+We assume a similar model for the departure rates.  The random block effects link the arrival and departure processes at a given station, and the third term in the gaussian process links the rate parameters for the arrival processes across stations.  The departure processes across stations are linked via a similar term, albeit different parameter values, $(\sigma_3^2, \lambda^\prime)$.
+
+\subsection{Maximum Likelihood Estimation}
+
+Suppose that there are $n$ total stations. Now take the observations at a particular The general form of the Cox Process Likelihood associated with the data, \\ $Y = \left( (Y_1^{a}, Y_1^{d}), \ldots, (Y_n^{a}, Y_n^{d}) \right) $ is:
+\begin{align}
+l( \theta; Y ) &= \int_{\Lambda} P(X,  \Lambda | \theta) d \Lambda \\
+&= \int_{\Lambda} \prod_{i=1}^n \frac{\lambda_i^{a} \lambda_i^{d}}{Y_i^{a} Y_i^{d}} e^{-\lambda_i^{d}+\lambda_i^{a}}
+\end{align}
+\noindent where $\Lambda$ is the value of the gaussian process.  Then we have 
 
 
-\section{The Bikeshare Problem}
-
-\vspace{0.25cm}
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item Introduce Bikeshare
-\item The counts are multinomial in a manner but highly flat (need to think of them as rates)
-\item Define the Dual PHMM process
-\item Introduce the Censoring Issue and the Correlation B/W the Processes
-\end{enumerate}
-\vspace{0.5cm}
-
-\section{Spatial-Temporal PHMM}
-
-\vspace{0.25cm}
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item The stations are not in isolation
-\item We should leverage information about other stations
-\item We use a log-Gaussian Cox Process to do this
-\item Problems are things like (1) Takes a while to fit, (2) Our parameters are temporally dependent 
-\item How do we choose the covariates?
-\end{enumerate}
-\vspace{0.5cm}
 
 \section{A Parallel Approximate Estimation Algorithm}
+
+The assumed dependence among all counting processes makes maximum likelihood estimation computationally intensive.  This is because, we must model the entire system of counting processes simultaneously and the dimension of the gaussian process becomes prohibitely large.  For example, there are over 100 loading stations in Chicago for which we have almost a year of data.  If we disaggregate the data to half-hour windows, the complete set of observations is over one-million.  Given the computational cost of the Cholesky Decomposition, we cannot hope to estimate our model in a practical amount of time.
+
+We start by assuming we capture the temporal dependence through a factor model.  However, we still must worry about the spatial dependence as the dimension woudl still exceed $10,000$.   We do this by approximating the covariance of the gaussian process by a block-diagonal matrix. This exploits the weak dependence between stations that are far apart.  
+
+In order to approximate the gaussian process, we must determine the blocks.  We do this by taking the station locations, and running a hierarchical k-means clustering on the set of locations using $l_1$ distances.  The choice of $l_1$ is as a proxy for the true biking distance between points which commonly fall in a grid for cities.
+
+In Figure~\ref{fig:cluster_map} shows the hierarchical clustering applied to the Washington D.C. bikeshare stations.  The clusters reflect the well defined neighborhoods 
+
+\begin{figure} [!h]
+\caption{Hierarchical K-means Clustering}
+\centering
+\includegraphics[scale = 0.2]{cluster_map.png}
+\end{figure}
+
+As we assume the clusters are independent, we can then model each separately.  This allows us to runthe Approximate Block Diagonal GP in parallel which provides additional computational savings.
 
 \vspace{0.25cm}
 {\bf SECTION OUTLINE}
