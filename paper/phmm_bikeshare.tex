@@ -86,7 +86,7 @@ l ( \theta; Y ) = \sum_{i=1}^T  E_{\lambda | \theta} [l^{\star} ( \lambda; Y (t_
 \end{align*}
 In our setting, the likelihood for each time window consists of estimating an expectation over the finite-dimensional distribution of $\lambda$.  The number of stations is of the order of several hundred.  Washington D.C. has roughly $250$ stations, and therefore the dimension of our expectation is approximately $500$.  The high dimensionality of the integration appears formidable. 
 
-\subsection{Monte Carlo Estimation} 
+\subsection{Monte Carlo Estimation} \label{mc_estimation}
 Standard Monte Carlo methods would employ the estimate:
 \begin{equation}
 l_{MC} (\theta) = s^{-1} \sum_{j=1}^s l \left( \theta | X, \lambda^{(j)} \right)
@@ -121,7 +121,7 @@ The assumed dependence among all counting processes makes maximum likelihood est
 
 We start by assuming we capture the temporal dependence through a factor model.  However, we still must worry about the spatial dependence as the dimension would still exceed $10,000$.   However, the dependency, while positive, is weak for stations that are well separated.  Therefore, we can approximate the true underlying gaussian process by a block-approximate gaussian process. This exploits the weak dependence between stations that are far apart.  
 
-\subsection{Hierarchical Clustering}
+\subsection{Hierarchical Clustering}\label{clustering}
 In order to approximate the gaussian process, we must determine the independent station blocks.  This requires partitioning the entire set of stations, $\Omega = \{ {\bf z}_i = (x_i, y_i) \, , i = 1,\ldots S\}$, where $(x_i, y_i)$ are the latitude and longitude for station~$i$. The resulting partition must capture high in-block and low between-block covariance.  
 
 We assumed that the spatial covariance between stations is a decreasing function of the Euclidean distance between the two points.  In particular, we describe the relationship via a squared exponential covariance function, $K(\| {\bf z}_i - {\bf z}_j \|) = \sigma_3^2 \exp \left( - \| {\bf z}_i - {\bf z}_j \|^2/ \lambda \right)$, where $\lambda$ is a range parameter.  This is the limit of the Matern covariance function, a set of stationary covariance functions typically used in spatial statistics.  If we knew the range parameter, $\lambda$, a priori then the partitioning of $\Omega$ can reflect the range of the spatial process.  However, the range is typically unknown before fitting the model, and therefore cannot be used to build the partition.
@@ -219,20 +219,35 @@ The optimum allocation minimizes the re-distribution thoughout the day, saving r
 
 \section{Estimation and Prediction for a New Station}
 
-Many bicyle sharing systems grow over time.  In Chicago, over $50$ new stations have been added in the past few months.  Even in cities with long-standing bikeshare systems, new stations are added as citizens of neighborhoods continue to request additional capacity.  It is therefore necessary to be able to 
+Many bicyle sharing systems grow over time.  In Chicago, over $50$ new stations have been added in the past few months.  Even in cities with long-standing bikeshare systems, new stations are added as citizens of neighborhoods continue to request additional capacity.  It is therefore necessary to be able to estimate parameters for new stations even before we have much data on the new station.
 
+Let $z=(x,y)$ denote the latitude and longitude of the new station.  Then we calculate the distance from the new station to the centroids of the various clusters discussed in Section~\ref{clustering}.  We then assume that the new station will be added to the cluster such that the centroid of the cluster is closest in Euclidean distance.
 
-\section{Online Learning: Algorithm and Prediction}
+Within this cluster, we calculate a weighted average of the parameters at each station, $\theta_j$, where the weights are proportional to the exponential squared covariance function.  We use this as an initial estimate 
+\begin{equation}
+\hat{\theta} = \frac{\sum_j \exp \left( - \frac{ |z - z_j|}{\lambda} \right) \theta_j}{\sum_j \exp \left( - \frac{ |z - z_j|}{\lambda} \right) }
+\end{equation}
+\noindent where the sum is over all stations in the assigned cluster.  Prediction then occurs in the same manner, where we employ Kriging methods for interpolation of the spatial process to the new station location.
 
-\vspace{0.25cm}
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item Want a manner to update paramaters in an online setting as the `latest numbers' provide the most updated solutions
-\item We want to do this in a very simple way
-\item Use the online algorithms and approximate block models
-\end{enumerate}
-\vspace{0.5cm}
+We may have a point on or near the boundary.  In that case, we can then assign the new station to each cluster with probability proportional to the exponential squared distance from the centroids.  Then the above estimate is denoted $\hat{\theta}_i$ for cluster $U_i$ and the estimated parameters become the weighted average of the above estimates.  The predictions are handles in a similar way, and prediction for each cluster is done separately and then compiled by weighted averaging.
 
+Once we have collected enough data for the station, we can then revert to standard estimation procedures.  Section~\ref{online_learning}  outlines a different approach to the above, and provides additional tools for estimation of parameters given new data is continually streaming.
+
+\section{Online Learning: Algorithm and Prediction} \label{online_learning}
+
+Unlike other spatial-temporal datasets, the bikeshare datasets are continually updated each day.  Each day generates an observation of the underlying stochastic process. Unfortunately, the methods outlined above are computationally expensive and too slow to be re-fit on a daily basis.  Moreover, if we assume that the system is in equilibrium (meaning parameter values are constant and not changing) then once we have enough data, the additional observations will only be marginally useful and continuing to fit the model will be unnecessary.
+
+However, the bikeshare systems do change over time as does their use.  Moreover, for new stations, we'd like a more natural manner for switching from the weighted average to estimation of the .  We provide such an approach below.
+
+Our assumption that the temporal trends are captured in the mean model implied that the stochastic process over disjoint time windows is independent.  The likelihood then factorized into a sum over these disjoint time windows.  When the likelihood factorizes into the sum of differentiable functions, stochastic gradient descent methods can be used for finding the maximum likelihood estimate.
+
+In stochastic gradient descent, the true gradient of the function $\frac{\partial}{\partial \theta} L( \theta)$ is approximated by the gradient at a single time window, $(t, t+\delta)$.  Updates are then given by:
+\begin{equation}
+\theta \gets \theta + \alpha \nabla L_t (\theta) 
+\end{equation}
+\noindent where $\alpha$ is the step size, and $L_t$ is the likelihood given the observations at time $t$.  We approximate the likelihood based on Monte Carlo approach outlined in Section~\ref{mc_estimation}.  Given the current estimat, $\hat{\theta}$ we can then update the parameters for each day of data without having to refit the entire model.
+
+Moreover, this provides a way to transition from the initial estimate for a new station, to the true estimate using a consistent and straightforward approach.
 
 \section{Experimental Results}
 
