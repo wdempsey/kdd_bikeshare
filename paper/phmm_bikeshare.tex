@@ -164,18 +164,18 @@ Given the approximate maximum likelihood estimate, $\theta$, we now turn our att
 
 \section{Prediction}
 
-For a particular station~$i$ at a particular time~$t$, we know the number of bikes at the station, $Y_i(t)$.  We are interested in estimation of the expected number of bikes at some future time point, $t+\delta$.  To answer the question of re-distribution, we also need to know the probability that the number of bikes reaches an extreme value in the time window $(t, t+\delta)$.  Therefore, assuming a maximum number of spots $\tau$, we want to estimate $\text{E} \left[ Y(t+ \delta) | Y(t) , \hat{\theta} \right]$ and $\text{P} [ Y(s) = 0 \text{ or } Y(s) = \tau \text{ for some } s \in (t, t+\delta) | Y(t), \hat{\theta} ]$.
+For a particular station~$i$ at a particular time~$t$, we know the number of bikes at the station, $Y_i(t)$.  We are interested in estimation of the expected number of bikes at some future time point, $t+\delta$.  To answer the question of re-distribution, we also need to know the probability that the number of bikes reaches an extreme value in the time window $(t, t+\delta)$.  Therefore, assuming a maximum number of spots $\tau$, we want to estimate $\text{E} \left[ Y(t+ \delta) | Y(t) , \hat{\theta} \right]$ and $\text{P} [ Y(s) = 0 \text{ or } Y(s) = \tau \text{ for some } s \in (t, t+\delta) | Y(t), \hat{\theta} ]$.  
 
-Our block approximation from section~\ref{parallel_estimation}, allows estimation of both quantities to be done separately for each cluster.  Suppose station~$i$ sits inside cluster $U \subset \Omega$.
+Our block approximation from section~\ref{parallel_estimation} allows estimation of both quantities to be done separately for each cluster.  Suppose station~$i$ sits inside cluster $U \subset \Omega$.  Let the expected rate parameter at time~$s$ given estimates $\hat{\theta}$ to be given by~$\hat{\lambda} (s)$.  Then the expected number of arrivals in the window is given by $\int_{t}^{t+\delta} \hat{\lambda}_a (s) ds$.  The expected number of departures is the same formula with the integrand replaced by $\hat{\lambda}_d$.  Then we can estimate the expected number of bikes at the station by:
+\begin{equation*}
+\text{E}_{\hat{\theta}} \left[ Y(t+ \delta) \, | \, Y(t) \right] = Y(t) + \int_{t}^{t+\delta} \hat{\lambda}_a (s) ds - \int_{t}^{t+\delta} \hat{\lambda}_d (s) ds
+\end{equation*}
 
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item Simple : Station with data and neighboring stations
-\item Add a new Station:   Need to infer the model for that station
-\item Cluster Analysis
-\item What about a new system?  Assume the covariates are okay, then we still need to do a cluster analysis
-\end{enumerate}
-\vspace{0.5cm}
+To calculate the probability of being empty requires a simulation-based approach.
+
+
+\subsection{Prediction for a New Station}
+
 
 \section{Online Learning: Algorithm and Prediction}
 
