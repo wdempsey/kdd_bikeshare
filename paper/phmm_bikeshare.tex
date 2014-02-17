@@ -1,5 +1,8 @@
 \documentclass{acm_proc_article-sp}
 
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
 \begin{document}
 
 \title{Addressing Redistribution in Bikeshare Using Cox Processes and Online Supervised Learning}
@@ -90,43 +93,87 @@ l_{MC} (\theta) = s^{-1} \sum_{j=1}^s l \left( \theta | X, \lambda^{(j)} \right)
 \end{equation}
 \noindent where $\lambda^{(j)}$ are simulated realisations of $\lambda$.  This is highly inefficient.  Based on the work of Geyer (1999) and Diggle et al. (2013), we use the following to provide robust, efficient estimation of the log-likelihood function.  Given un-normalized joint density of $X$ and $\lambda$, $f(X, \lambda | \theta)$, then 
 \begin{align}
-\hat{L} \left( \theta \right) =& \log \big \{ s^{-1} \sum_{j=1}^s r \left( X , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \\
-&- \log \big \{ s^{-1} \sum_{j=1}^s r \left( X^{(j)} , \lambda^{(j)} , \theta, \theta_0 \right) \big \}
+\hat{L} \left( \theta \right) =& \log \big \{ s^{-1} \sum_{j=1}^s r \left( X , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \label{approx_lik} \\
+&- \log \big \{ s^{-1} \sum_{j=1}^s r \left( X^{(j)} , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \notag
 \end{align}
 \noindent where $r(X, \lambda, \theta, \theta_0) = f(X, \lambda | \theta)/f(X, \lambda | \theta_0)$. The result provides a Monte Carlo approximation to the log-likelihood function, and consequently the maximum likelihood estimate, $\hat{\theta}$, by simulating the process at a single value, $\theta_0$.  The accuracy is a function of the number of simulations, $s$, and the proximity of $\theta_0$ to $\theta$.
 
-The pair $(X^{(j)}, \lambda^{(j)})$ are simulated joint realisations of $X$ and $\lambda$ at $\theta = \theta_0$.  In the first term, $X$ is held fixed and $\lambda^{(j)}$ are conditional on $X$.  Conditional simulation of $\lambda$ requires Markov Chain Monte Carlo (MCMC) methods.  Design, computational issues, and design are detailed by Diggle et al. (2013).
+The pair $(X^{(j)}, \lambda^{(j)})$ are simulated joint realisations of $X$ and $\lambda$ at $\theta = \theta_0$.  In the first term, $X$ is held fixed and $\lambda^{(j)}$ are conditional on $X$.  Conditional simulation of $\lambda$ requires Markov Chain Monte Carlo (MCMC) methods.  Design, computational issues, and design are detailed by Diggle et al. (2013).  Algorithm \ref{applik_alg} outlines pseudocode for finding the maximum likelihood estimate, $\hat{\theta}$.
 
-It rests to choose the estimat $\theta_0 = (\mu_0 , {\bf \sigma}_0^2)$.  We estimate the parameters for each Poisson process independently to get initial estimates for the mean parameters, $\mu_0$.  We take a simple average of the estimated mean squared errors for each station to provide an initial estimate of $\sigma_0^2$.  The starting estimates for the variance components is chosen such that $\sigma_j^2 = \frac{\sigma_1^2}{2}$ for $j = 2,3$.  This is ad-hoc, but unfortunately the choice of starting estimates in this case is less clear.
+\begin{algorithm}[!h]
+\caption{Block-Approximate Cox Process} \label{applik_alg}
+\begin{algorithmic}
+\STATE {\bf ApproxCP}$(Y, s, \theta_0)$
+\FOR{$j$ in $1:s$}
+\STATE Generate $(\lambda^{(j)}, Y^{(j)})$ at $\theta = \theta_0$
+\STATE Generate $\lambda_2^{(j)}$ given $Y$ at $\theta = \theta_0$ via MCMC
+\ENDFOR
+\STATE Estimate $\hat{L} (\theta)$ by equation~\eqref{approx_lik}
+\STATE $\hat{\theta} \gets \arg \max \hat{L} (\theta)$ given $\theta_0$
+\end{algorithmic}
+\end{algorithm}
 
-\section{A Parallel Approximate Estimation Algorithm}
+It rests to choose the estimate $\theta_0 = (\mu_0 , {\bf \sigma}_0^2)$.  We estimate the parameters for each Poisson process independently to get initial estimates for the mean parameters, $\mu_0$.  We take a simple average of the estimated mean squared errors for each station to provide an initial estimate of $\sigma_0^2$.  The starting estimates for the variance components is chosen such that $\sigma_j^2 = \frac{\sigma_1^2}{2}$ for $j = 2,3$.  This is ad-hoc, but unfortunately the choice of starting estimates in this case is less clear.
 
-The assumed dependence among all counting processes makes maximum likelihood estimation computationally intensive.  This is because, we must model the entire system of counting processes simultaneously and the dimension of the gaussian process becomes prohibitely large.  For example, there are over 100 loading stations in Chicago for which we have almost a year of data.  If we disaggregate the data to half-hour windows, the complete set of observations is over one-million.  Given the computational cost of the high-dimensional integral, we cannot hope to estimate our model in a practical amount of time.
+\section{A Parallel Approximate Estimation Algorithm} \label{parallel_estimation}
 
-We start by assuming we capture the temporal dependence through a factor model.  However, we still must worry about the spatial dependence as the dimension would still exceed $10,000$.   We do this by approximating the covariance of the gaussian process by a block-diagonal matrix. This exploits the weak dependence between stations that are far apart.  
+The assumed dependence among all counting processes makes maximum likelihood estimation computationally intensive.  This is due to the covariance being positive between any two stations.  Therefore, we must model the entire system of counting processes simultaneously and the dimension of the gaussian process becomes prohibitely large.  For example, there are over $100$ loading stations in Chicago for which we have almost a year of data.  If we disaggregate the data to half-hour windows, the complete set of observations is over one-million.  Given the computational cost of the high-dimensional integral, we cannot hope to estimate our model in a practical amount of time.
 
-In order to approximate the gaussian process, we must determine the blocks.  We do this by taking the station locations, and running a hierarchical k-means clustering on the set of locations using $l_1$ distances.  The choice of $l_1$ is as a proxy for the true biking distance between points which commonly fall in a grid for cities.
+We start by assuming we capture the temporal dependence through a factor model.  However, we still must worry about the spatial dependence as the dimension would still exceed $10,000$.   However, the dependency, while positive, is weak for stations that are well separated.  Therefore, we can approximate the true underlying gaussian process by a block-approximate gaussian process. This exploits the weak dependence between stations that are far apart.  
 
-In Figure~\ref{fig:cluster_map} shows the hierarchical clustering applied to the Washington D.C. bikeshare stations.  The clusters reflect the well defined neighborhoods 
+\subsection{Hierarchical Clustering}
+In order to approximate the gaussian process, we must determine the independent station blocks.  This requires partitioning the entire set of stations, $\Omega = \{ {\bf z}_i = (x_i, y_i) \, , i = 1,\ldots S\}$, where $(x_i, y_i)$ are the latitude and longitude for station~$i$. The resulting partition must capture high in-block and low between-block covariance.  
+
+We assumed that the spatial covariance between stations is a decreasing function of the Euclidean distance between the two points.  In particular, we describe the relationship via a squared exponential covariance function, $K(\| {\bf z}_i - {\bf z}_j \|) = \sigma_3^2 \exp \left( - \| {\bf z}_i - {\bf z}_j \|^2/ \lambda \right)$, where $\lambda$ is a range parameter.  This is the limit of the Matern covariance function, a set of stationary covariance functions typically used in spatial statistics.  If we knew the range parameter, $\lambda$, a priori then the partitioning of $\Omega$ can reflect the range of the spatial process.  However, the range is typically unknown before fitting the model, and therefore cannot be used to build the partition.
+
+We therefore perform $k$-means clustering using Euclidean distance.  The choice of $k$ so that clusters reflect true neighborhood clustering; moreover, $k$ larger, implies weaker approximations, but faster estimation, while $k$ smaller, implies the opposite.  We therefore choose $k$ to balance the computational-approximation tradeoff.
+
+Figure~\ref{fig:cluster_map} shows the hierarchical clustering applied to the Washington D.C. bikeshare stations.  The clusters reflect the well defined neighborhoods.  {\bf Discuss the size of the clusters and the neighborhoods}
 
 \begin{figure} [!h]
 \caption{Hierarchical K-means Clustering}
 \centering
 \includegraphics[scale = 0.2]{cluster_map.png}
+\label{fig:cluster_map}
 \end{figure}
 
-As we assume the clusters are independent, we can then model each separately.  This allows us to runthe Approximate Block Diagonal GP in parallel which provides additional computational savings.
+We employ the clustering without knowledge of the range parameter; however, once we have the maximum likelihood estimate, $\hat{\theta}$, we will have an estimate of the range parameter, $\hat{\lambda}$.  The $k$-means clustering algorithm does not consider linear scaling of the distance function.  Therefore, if we simply re-estimate the clusters using the modified Euclidean distance, $\|{\bf z}_i - {\bf z}_j \| / \hat{\lambda}$, we will achieve the same partition.  However, we can now use the range estimate, to choose $k$ more  
 
-\vspace{0.25cm}
+\subsection{Parallel Estimation}
+
+The block-diagonal approximation lightens the computational burden of the Monte-Carlo Simulations, as the conditional simulation of $\lambda$ condtional on $Y$ can be done in parallel.  However, the likelihood does not factorize by cluster under the current assumptions.  The approximate likelihood, $\hat{L} (\theta)$, does become a sum over independent clusters, but the assumption of common variance components means that estimation cannot be done in parallel across clusters.
+
+If we assume that the variance components are distinct for each cluster, then we can estimate parameters separately for each cluster by exploiting variational independence.  This leads to additional computational savings as we can then parallelize the entire estimation procedure.  If the true variance components are identical for each cluster, then the estimated variance components for each cluster will be unbiased estimators.  Therefore, we only sacrifice slight losses in efficiency for gross gains in speed.  
+
+\begin{algorithm}[!h]
+\caption{Approximate Likelihood Algorithm} \label{applik_alg}
+\begin{algorithmic}
+\FOR{$i$ in stations}
+\STATE $\mu_i \gets$ Fit marginal model $i$ 
+\ENDFOR
+\STATE Obtain initial estimate for $\sigma_0^2 = \text{mean} \{ \sigma_{0,j}^2\}$
+\STATE Obtain initial estimate for $\sigma_1^2 = \sigma_2^2 = \sigma_0^2 / 2$
+\STATE $U_1, U_2, \ldots U_k \gets$ cluster$(k, \text{stations})$
+\FOR{$j$ in $1:k$}
+\STATE $\theta_j \gets \text{ApproxCP} (Y_j, s, \theta_0)$ for Cluster $U_j$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+Given the approximate maximum likelihood estimate, $\theta$, we now turn our attention to estimating the desired quantities.
+
+\section{Prediction}
+
+For a particular station~$i$ at a particular time~$t$, we know the number of bikes at the station, $Y_i(t)$.  We are interested in estimation of the expected number of bikes at some future time point, $t+\delta$.  To answer the question of re-distribution, we also need to know the probability that the number of bikes reaches an extreme value in the time window $(t, t+\delta)$.  Therefore, assuming a maximum number of spots $\tau$, we want to estimate $\text{E} \left[ Y(t+ \delta) | Y(t) , \hat{\theta} \right]$ and $\text{P} [ Y(s) = 0 \text{ or } Y(s) = \tau \text{ for some } s \in (t, t+\delta) | Y(t), \hat{\theta} ]$.
+
+Our block approximation from section~\ref{parallel_estimation}, allows estimation of both quantities to be done separately for each cluster.  Suppose station~$i$ sits inside cluster $U \subset \Omega$.
+
 {\bf SECTION OUTLINE}
 \begin{enumerate}
-\item The Gaussian Process Leads to a Complete Graphical Model
-\item However the dependency on the other far away nodes is negligible.
-\item Therefore, we can approximate the Gaussian Process by an Approximate Block Diagonal GP
-\item Similarity to CRFs (but we have a temporal component)
-\item This allows us to fit models separately.
-\item Problem is boundaries are not distinct
-\item End with discussion of Estimation
+\item Simple : Station with data and neighboring stations
+\item Add a new Station:   Need to infer the model for that station
+\item Cluster Analysis
+\item What about a new system?  Assume the covariates are okay, then we still need to do a cluster analysis
 \end{enumerate}
 \vspace{0.5cm}
 
@@ -140,17 +187,6 @@ As we assume the clusters are independent, we can then model each separately.  T
 \item Use the online algorithms and approximate block models
 \end{enumerate}
 \vspace{0.5cm}
-
-\section{Prediction}
-{\bf SECTION OUTLINE}
-\begin{enumerate}
-\item Simple : Station with data and neighboring stations
-\item Add a new Station:   Need to infer the model for that station
-\item Cluster Analysis
-\item What about a new system?  Assume the covariates are okay, then we still need to do a cluster analysis
-\end{enumerate}
-\vspace{0.5cm}
-
 
 
 \section{Experimental Results}
