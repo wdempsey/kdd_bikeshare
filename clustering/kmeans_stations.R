@@ -20,7 +20,7 @@ plot(dendro,  main = "Cluster Dendrogram of Station Data Using Single Link (Manh
 set.seed(123)
 n_cluster = 8
 cluster = kmeans(l1_dist, centers = n_cluster, iter.max = 100, nstart = 9)
-plot(stations_mat, col = cluster$cluster, main = paste('K-means Clustering using l1 distance, clusters = ',n_cluster,sep = ''), pch = 15)
+plot(stations[,c('latitude','longitude')], col = cluster$cluster, main = paste('K-means Clustering using l1 distance, clusters = ',n_cluster,sep = ''), pch = 15)
 points(cluster$centers, col = 1:2, pch = 8, cex = 2)
 
 stations$cluster = cluster$cluster
