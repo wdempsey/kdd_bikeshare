@@ -166,15 +166,60 @@ Given the approximate maximum likelihood estimate, $\theta$, we now turn our att
 
 For a particular station~$i$ at a particular time~$t$, we know the number of bikes at the station, $Y_i(t)$.  We are interested in estimation of the expected number of bikes at some future time point, $t+\delta$.  To answer the question of re-distribution, we also need to know the probability that the number of bikes reaches an extreme value in the time window $(t, t+\delta)$.  Therefore, assuming a maximum number of spots $\tau$, we want to estimate $\text{E} \left[ Y(t+ \delta) | Y(t) , \hat{\theta} \right]$ and $\text{P} [ Y(s) = 0 \text{ or } Y(s) = \tau \text{ for some } s \in (t, t+\delta) | Y(t), \hat{\theta} ]$.  
 
-Our block approximation from section~\ref{parallel_estimation} allows estimation of both quantities to be done separately for each cluster.  Suppose station~$i$ sits inside cluster $U \subset \Omega$.  Let the expected rate parameter at time~$s$ given estimates $\hat{\theta}$ to be given by~$\hat{\lambda} (s)$.  Then the expected number of arrivals in the window is given by $\int_{t}^{t+\delta} \hat{\lambda}_a (s) ds$.  The expected number of departures is the same formula with the integrand replaced by $\hat{\lambda}_d$.  Then we can estimate the expected number of bikes at the station by:
+\subsection{Expected Number of Bikes}
+Our block approximation from section~\ref{parallel_estimation} allows estimation of both quantities to be done separately for each cluster.  Suppose station~$i$ sits inside cluster $U \subset \Omega$.  Let the expected rate parameter at time~$s$ given $(Y,\hat{\theta})$ to be given by~$\hat{\lambda} (s)$.  Then the expected number of arrivals in the window is given by $\int_{t}^{t+\delta} \hat{\lambda}_a (s) ds$.  The expected number of departures is the same formula with the integrand replaced by $\hat{\lambda}_d$.  Then we can estimate the expected number of bikes at the station by:
 \begin{equation*}
 \text{E}_{\hat{\theta}} \left[ Y(t+ \delta) \, | \, Y(t) \right] = Y(t) + \int_{t}^{t+\delta} \hat{\lambda}_a (s) ds - \int_{t}^{t+\delta} \hat{\lambda}_d (s) ds
 \end{equation*}
 
-To calculate the probability of being empty requires a simulation-based approach.
+To calculate the expected rate parameter at time~$s$, we need to calculate the probability of the rate parameter given the maximum likelihood estimate and the observed counts. The predicted rate parameter is given by:
+\begin{equation*}
+P [ \lambda_i (s) | Y, \hat{\theta} ] \propto \int P [ Y | \lambda (s), \hat{\theta} ] P [ \lambda_i (s) | \hat{\theta} ] \prod_{j \neq i} P [ \lambda_j (s) | \hat{\theta} ] d \lambda_j (s)
+\end{equation*}
+\noindent We assume that the rate parameter is constant in each half-hour time window.  Let $N^{a}_i(t, t+\delta)$ be the number of arrivals in the time window starting at time~$t$ at station~$i$.  Then let $N^{a} (t, t+\delta)$ be the vector of arrivals for stations in cluster $U$.  Then we can estimate the rate parameter for window $(t, t+\delta)$, $\lambda$ by 
+\begin{equation*}
+\int_0^\infty \lambda P [ \lambda | N^{a}, \hat{\theta} ] d\lambda
+\end{equation*}
+\noindent We calculate these expectations by Monte Carlo estimation.  The expected number of bikes is then a simple difference of the Monte Carlo estimated expected arrival and departure rate parameters added to the total number of current bikes.  Because the intervals are independent, the expected number of bikes in the future is just the sum of independently estimated rate parameters for each disjoint window.
+
+\subsection{Probability of Station Being Extreme}
+
+To calculate the probability of station~$j$ being empty in the time window (denoted $P_j (t, t+\delta)$)requires a simulation-based approach.  Suppose we are interested in the probability over the smallest window, $(t, t+\delta)$.  We start by generating the constant arrival and departure rate parameters in the window for station~$j$ in $U$, $\lambda^{a}_j$ and $\lambda^{d}_j$ respectively. 
+
+Then for a particular station, we can wish to simulate the arrivals and departure of bikes.  Given the rate parameters, the arrival and departure processes are independent and therefore by the superposition principle implies that the first event has an exponential waiting time, $T_1$, with rate parameter $\lambda_j = \lambda^{a}_j + \lambda^{d}_j$.  The probability that the first event is an arrival is $\lambda^{a}_j / \lambda_j$.   If $T_1 < \delta$, then we have an event in the time window.  If that event was an arrival, then we set $Y(t+T_1) = Y(t) + 1$.  If the event was a departure, then we subtract one from the current number.  We then continue this process until $\sum_{k} T_k > \delta$.  We then have an random instance of $\{ Y_j(s) \, s \in (t, t+\delta) | Y_j(t) \}$.  We do this for each station~$j$ in $U$.
+
+The number of bikes is bounded to be in $[0, \tau_j]$, where $\tau_j$ is the maximum number of slots at station~$j$.  Therefore, if the number of bikes is zero in the time window and we cannot generate a departure.  The same is true for a full station and generating arrivals.  We can handle these constraints in two ways.  We can continue to generate these departures and arrivals but ignore those that push the process outside of its boundaries.  By the thinning principle, this is equivalent to only generating arrivals at the rate $\lambda^{a}_j$ when the station is empty or departures at the rate $\lambda^{d}_j$ when the station is full.   On the other hand, instead of ignoring the arrivals, we can send these arrivals to nearby stations.  This will be more accurate; however, we would then need to estimate the travel time to the nearest station that is not full.  We do not currently employ such methods, as they add a serious additional computational obstacle.  However, such an approach would be easy to insert into the current framework
+
+Let $\Delta^{(i)}_j$ be an indicator that the number of bikes at station $j$ reaches an extreme position in the time window for the~$i$th instance from our simulation.  Then we estimate the probability by the simple average:
+\begin{equation*}
+\hat{P}_j = \bar{\Delta}_j = s^{-1} \sum_{i=1}^s \Delta^{(i)}_j
+\end{equation*}
+\noindent  These are simultaneously estimated for each station in the cluster.  We can therefore estimate the probabilities in parallel for each cluster, $U_1$ through $U_k$.
+
+\subsection{Proper Distribution of Bikes}
+
+The above provides detailed information which would allow re-distribution of bikes to be done proactively before stations become empy.  We now use answer the question of appropriate distribution of bikes.  That is, before commuting hours, what is the correct distribution of bikes in the city to minimize the chance of a station becoming extreme. 
+
+Let $Y$ be a vector containing the number of bikes at each station in the city.  Then we can calculate the probabilty of each stations becoming extreme in the desired time window, $P$.  For example, we may be interested in the time window that lasts from one hour before rush hour to several hours after rush hour ($6$AM to $12$PM for instance).  We then assume some objective function of the probabilities, $f: P \rightarrow \mathbb{R}$.  For example, we may be interested in minimizing the maximum, $f(P) = \max_j P_j$, or in miniming the sum of squares, $f(P) = \sum_j P_j^2$.  
+
+The goal is then to find the best allocation of bikes for the city with the constraint on the total number of bikes in the system remaining fixed, $\| Y\|_1 = C$.  In particular,
+\begin{align*}
+&\max f (P) \\
+\text{s.t. } P = \{ P[ Y_j(s) &\text{ extreme for } s \in (t,t+\delta) | Y_j (t) \} \\
+&\text{and } \| Y \|_1 = C
+\end{align*}
+We can add additional constraints that may be necessary in practice.  For example, we may require a certain number of bikes per neighborhood.  The search space is quite large.  Given $C$ total bikes and $N$ total stations, the search space is of size $N^C$.  Therefore, given $f$ and $Y$, we propose a simple simulated annealing approach to finding the global optimum.  Details are given by Bertsimas and Tsitsikis (Statistical Science).
+
+The annealing approach requires an initial state.  We assume that the system currently is working at least approximately close to an optimum.  Therefore, we take $Y_0$ to be approximately the average number of bikes at each station at time $t$.  Simulated annealing produces $\hat{Y}$.  As we only care about distribution at a few distinct times, we only need to calculate optimum allocation several times. 
+
+Slight changes to the objective function may result in drastically different distributions of bikes across the city.  It is necessary to investigate this behavior.  For example, we can have the objective function take into account the rate parameters, penalizing empty, busy stations more than empty, idle ones.  This does not increase the search space as the rate parameters are not functions of $Y$; however, it does add additional computational burdens. 
+
+The optimum allocation minimizes the re-distribution thoughout the day, saving resources and time.
 
 
-\subsection{Prediction for a New Station}
+\section{Estimation and Prediction for a New Station}
+
+Many bicyle sharing systems grow over time.  In Chicago, over $50$ new stations have been added in the past few months.  Even in cities with long-standing bikeshare systems, new stations are added as citizens of neighborhoods continue to request additional capacity.  It is therefore necessary to be able to 
 
 
 \section{Online Learning: Algorithm and Prediction}
