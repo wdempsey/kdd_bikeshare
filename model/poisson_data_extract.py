@@ -14,7 +14,7 @@ from dateutil.parser import parse
 import calendar
 import sys
 
-conn = psycopg2.connect(dbname=os.environ.get('dbname'), user=os.environ.get('dbuser'), host=os.environ.get('dburl'))
+conn = psycopg2.connect(dbname=os.environ.get('dbname'), user=os.environ.get('dbuser'), host=os.environ.get('dburl'),password=os.environ.get("dbpw"))
 
 def get_station_data(station_id, initial_time = datetime(2001,1,1), final_time = datetime(2020,1,1)):
     # Pulls Data for Given Station_id and Converts to Pandas Dataframe
