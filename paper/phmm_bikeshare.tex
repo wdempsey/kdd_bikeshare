@@ -217,7 +217,7 @@ Slight changes to the objective function may result in drastically different dis
 The optimum allocation minimizes the re-distribution thoughout the day, saving resources and time.
 
 
-\section{Estimation and Prediction for a New Station}
+\section{Estimation and Prediction for a New Station} \label{newstation}
 
 Many bicyle sharing systems grow over time.  In Chicago, over $50$ new stations have been added in the past few months.  Even in cities with long-standing bikeshare systems, new stations are added as citizens of neighborhoods continue to request additional capacity.  It is therefore necessary to be able to estimate parameters for new stations even before we have much data on the new station.
 
@@ -243,11 +243,17 @@ Our assumption that the temporal trends are captured in the mean model implied t
 
 In stochastic gradient descent, the true gradient of the function $\frac{\partial}{\partial \theta} L( \theta)$ is approximated by the gradient at a single time window, $(t, t+\delta)$.  Updates are then given by:
 \begin{equation}
-\theta \gets \theta + \alpha \nabla L_t (\theta) 
+\theta_{t+1} \gets \theta_{t} + \gamma_t \nabla L_t (\theta) 
 \end{equation}
-\noindent where $\alpha$ is the step size, and $L_t$ is the likelihood given the observations at time $t$.  We approximate the likelihood based on Monte Carlo approach outlined in Section~\ref{mc_estimation}.  Given the current estimat, $\hat{\theta}$ we can then update the parameters for each day of data without having to refit the entire model.
+\noindent where $\gamma_t$ is the step size, and $L_t$ is the likelihood given the observations at time $t$.  Also, $\theta_t$ is the estimate of the parameter by employing SGD using data in sequence up to time~$t$.  We start with the same initial estimates as described in Algorithm~\ref{applik_alg}.  We hope that this algorithm behaves like its expectation, despite the noise introduced by using only one time window at each step.  We cycle through the time windows until convergence is reached. Convergence results typically require the step size to be a decreasing sequence 
+\begin{equation} \label{sgd_conditions}
+\sum_{t} \epsilon_t^2 < \infty \hspace{0.2 cm} \text{and} \hspace{0.2cm} \sum_{t} \epsilon_t = \infty
+\end{equation}
+\noindent We start with the first time window and work forward, shrinking the step size as a rate of $O(n^{\alpha})$ for $\alpha < \frac{1}{2}$ to ensure convergence.  We approximate the derivative of the likelihood based on the Monte Carlo approach outlined in Section~\ref{mc_estimation}.  Given the current estimate, $\hat{\theta}$ we can then update the parameters for each day of data without having to refit the entire model.
 
-Moreover, this provides a way to transition from the initial estimate for a new station, to the true estimate using a consistent and straightforward approach.
+In Section~\ref{newstation} we introduced the estimation procedure for parameters associated with a new station.  The stochastic gradient descent algorithm provides a natural mechanism for moving from this initial estimate toward the true Moreover,introduction of a new station may change the rate parameters associated with the neighboring stations.  In that sense, SGD is a consistent and straightforward approach when we wish to .  When we introduce a new station, the step size is increased in order to reflect the potential changes to the parameters.  However, if there are no further changes to the system, the step size decreases again in the same manner such that conditions~\eqref{sgd_conditions} are met.
+
+
 
 \section{Experimental Results}
 
@@ -265,6 +271,16 @@ Moreover, this provides a way to transition from the initial estimate for a new 
 \vspace{0.5cm}
 
 \subsection{Performance Indices}
+
+We wish to measure the success of our current modeling approach.  We were interested in estimating two specific quantities for a given station: (1) the expected number of bikes at some point in the future given the current number of bikes, $E_{j, \theta} (t+\delta | t) = E[ Y_j(t+\delta) | Y_j(t), \theta]$, and (2) the probability of the station becoming extreme during this time window, $P_{j,\theta} (t, t+\delta)$.
+
+For station~$j$, at time~$t$ with window length $\delta$, we use the mean-squared error of prediction in both cases to measure success of the algorithm:
+\begin{align}
+F_1(j, t, \delta) = \sum_{t^\prime = t} \| Y_j(t + \delta) - E_{j,\hat{\theta}} [ t+\delta | t] \| \\
+F_2(j, t, \delta) = \sum_{t^\prime = t} \| \Delta_j(t,t + \delta) - P_{j,\hat{\theta}} ( t, t+\delta) \|
+\end{align}
+
+
 
 \vspace{0.25cm}
 {\bf SECTION OUTLINE}
