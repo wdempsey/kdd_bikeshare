@@ -14,7 +14,7 @@ from dateutil.parser import parse
 import calendar
 import sys
 
-conn = psycopg2.connect(dbname=os.environ.get('dbname'), user=os.environ.get('dbuser'), host=os.environ.get('dburl'))
+conn = psycopg2.connect(dbname=os.environ.get('dbname'), user=os.environ.get('dbuser'), host=os.environ.get('dburl'),password=os.environ.get("dbpw"))
 
 def get_station_data(station_id, initial_time = datetime(2001,1,1), final_time = datetime(2020,1,1)):
     # Pulls Data for Given Station_id and Converts to Pandas Dataframe
@@ -188,21 +188,25 @@ def get_bucketed_data(station_id):
     start_flag = 0
     bikes_added = 0
     bikes_subtracted = 0
-    time = None
-    for row in minute_dataframe:
-        minute = minute_dataframe.index.minute
+    previous_half_hour_bit = None
+    for index, r in minute_dataframe.iterrows():
+        minute = index.minute
+        row = dict(r)
+        bikes_available = row['bikes_available']
         if minute < 30 :
             half_hour_bit = 0
         else:
             half_hour_bit = 1
         if start_flag == 0:
-            previous_bikes_available = row['bike_available']
+            previous_bikes_available = row['bikes_available']
             start_flag = 1
             previous_half_hour = half_hour_bit
             continue
         if half_hour_bit != previous_half_hour_bit:
             # Zero things out, append, and move on
-            bucket_dataframe.append({"half_hour":row["timestamp"],"arrivals":bikes_added,"departures":bikes_subtracted})
+            to_be_added = {"half_hour":index,"arrivals":bikes_added,"departures":bikes_subtracted}
+            bucket_dataframe = bucket_dataframe.append(to_be_added,
+                    ignore_index=True)
             bikes_added = 0
             bikes_subtracted = 0
         else:
@@ -214,8 +218,10 @@ def get_bucketed_data(station_id):
                 bikes_subtracted -= value_add
         previous_bikes_available = row['bikes_available']
         previous_half_hour_bit = half_hour_bit
+    bucket_dataframe=bucket_dataframe.set_index('half_hour')
     return bucket_dataframe
 
+# For testing purposes
 if __name__ == '__main__':
-    print get_bucketed_data(2).head
+    print get_bucketed_data(2).head(n=10)
 
