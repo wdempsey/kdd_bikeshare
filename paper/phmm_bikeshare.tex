@@ -262,12 +262,21 @@ In Section~\ref{newstation} we introduced the estimation procedure for parameter
 \subsection{Washington D.C. Bikeshare}
 \vspace{0.25cm}
 {\bf SECTION OUTLINE}
-\begin{enumerate}
-\item Explain the Complete Dataset
-\item Include Maps
-\item Explain how the `data' is common to Chicago given the layout of the city but it will not be common to other cities
-\item 
-\end{enumerate}
+
+We will test our method using data from the Washington, D.C. bikeshare system. This data set consists of station-level reports of the number of bikes and empty slots every minute. We augmented this data with weather data recorded on an hourly basis.
+
+In addition to the station-level data, we also use data that deals with the redistribution of bicycles by bikeshare employees. Each time a bike share driver employees up or drops off bikes at a station, the bikeshare company records the trip. We refer to this redistribution of bicycles as rebalancing. Capital Bikeshare, the bikeshare system in Washington , D.C.,  provided us with rebalancing data covering a year of rebalancing trips. This data contains the starting and ending stations for a bicycle and the times the bicycle was picked up and dropped off at another station. We used this data to remove rebalancing events from the station-level data. 
+
+In our analysis of the Washington, D.C., bikeshare data, a few patterns emerged around high activity times. The figure below anecdotally illustrates these common usage patterns. The purple line is the average number of bicycles at a bikeshare station located in downtown D.C., and the green line is the average number of bicycles at a bikeshare station located in an area of D.C. that is more residential. The averages were taken for every Monday over a year-long period. In the morning, the residential station empties out as people head to work and the downtown station fills up as people arrive at work. This figure demonstrates two potential problems in a bikeshare system, specifically riders can arrive at bike stations to check-in a bike but find no slots to dock their bike or potential riders arrive at a station to check out bikes but there are no bikes available.  For this predictive model to be useful, it must perform well during these ``high activity'' times at the stations. Specifically our goal is to mitigate these situations in high activity times.
+
+\begin{figure} [!h]
+\caption{Average Number of Bikes at Two Capital Bikeshare Stations}
+\centering
+\includegraphics[scale = 0.35]{stations_over_time.png}
+\end{figure}
+
+Different usage patterns may manifest in other bikeshare systems. For example, a drastic elevation change in a city could lead to riders using bikeshare on the way downhill but other public transit options on the way uphill. CITATION: J. H. Lin and T. C. Chou, ?A Geo-Aware and VRP-Based Public Bicycle Redistribution System,? International Journal of Vehicular Technology, vol. 2012, Article ID 963427, 14 pages, 2012. doi:10.1155/2012/963427
+
 \vspace{0.5cm}
 
 \subsection{Performance Indices}
