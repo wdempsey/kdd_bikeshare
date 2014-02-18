@@ -12,6 +12,7 @@ import pytz
 from dateutil.relativedelta import *
 from dateutil.parser import parse
 import calendar
+import sys
 
 conn = psycopg2.connect(dbname=os.environ.get('dbname'), user=os.environ.get('dbuser'), host=os.environ.get('dburl'))
 
@@ -40,7 +41,7 @@ def calc_non_rebalance_change(station_number, time_interval):
     # Read in Rebalancing Data from Instance
     rebalance = pd.io.parsers.read_csv("/mnt/data1/BikeShare/dc_rebalancing.csv", delimiter=",", parse_dates = [5])
     rebalance.columns = ['tech_num','start_station','start_terminal','end_station','end_terminal','start_date','end_date','last_technician_activity','duration','status_reason','bike_num']
-    # Note: end_date has missing values, so it was not read in as a timestamp. 
+    # Note: end_date has missing values, so it was not read in as a timestamp.
     # This doesn't really matter right now, and we change it into a timestamp later once the missing values are dropped
 
     # read in crosswalk data
@@ -68,13 +69,13 @@ def calc_non_rebalance_change(station_number, time_interval):
 
     # Concatenate dataframes with deltas
     deltas = pd.concat([start,end])
-    
+
     # Extract a certain station
     deltas_station = deltas.ix[deltas['tfl_id'] == station_number,:]
     time_interval = time_interval
     agg = deltas_station['delta'].resample(time_interval, how ='sum')
 
-    # Fill in missing values with zeroes 
+    # Fill in missing values with zeroes
     agg_no_NaNs = agg.fillna(0)
     return agg_no_NaNs
 
@@ -90,7 +91,7 @@ def rebalance_station_poisson_data(station_updates, station_id, time_interval, i
         rebalances = calc_non_rebalance_change(int(station_id), '1H')
         rebalances.index = rebalances.index.tz_localize('UTC').tz_convert('US/Eastern')
         minimum_rebalance_data = min(rebalances.index)
-        
+
         # Separate Departure and Arrival of Rebalancing Bikes
 
         pos_adj_for_rebalances = rebalances[rebalances < 0]
@@ -121,7 +122,7 @@ def rebalance_station_poisson_data(station_updates, station_id, time_interval, i
         # print pos_to_neg_deltas_interval.head()
         # print neg_to_pos_deltas_interval.head()
 
-        # These are the good cases we want to keep.  We will then match pos-pos and neg-pos into one 
+        # These are the good cases we want to keep.  We will then match pos-pos and neg-pos into one
         # combined vector of all positive deltas.
 
         pos_to_pos_deltas_interval = rebalanced_pos_deltas_interval_unadj[rebalanced_pos_deltas_interval_unadj > 0]
@@ -140,7 +141,7 @@ def rebalance_station_poisson_data(station_updates, station_id, time_interval, i
         departures = abs(rebalanced_neg_deltas_interval.fillna(0))
     else:
         # If we don't wish to use rebalancing data #
-        
+
         # Separate positive and negative deltas
         pos_deltas = deltas[deltas > 0]
         neg_deltas = abs(deltas[deltas < 0])
@@ -151,13 +152,13 @@ def rebalance_station_poisson_data(station_updates, station_id, time_interval, i
 
         # Set NaN delta counts to 0
         # By default the resampling step puts NaN (null values) into the data when there were no observations
-        # to count up during those thirty minutes. 
+        # to count up during those thirty minutes.
         arrivals = pos_interval_counts_null.fillna(0)
         departures = neg_interval_counts_null.fillna(0)
 
     arrivals_departures = pd.DataFrame(arrivals, columns=["arrivals"])
     arrivals_departures['departures'] = departures
-    
+
     # Extract months for Month feature, add to model data
     delta_months = arrivals_departures.index.month
     arrivals_departures['months'] = delta_months
@@ -176,3 +177,45 @@ def rebalance_station_poisson_data(station_updates, station_id, time_interval, i
     arrivals_departures['weekday_dummy'] = delta_weekday_dummy
 
     return arrivals_departures
+
+def get_bucketed_data(station_id):
+    """
+        Takes the station id and returns Walter's sweaty desires:
+        half_hour_bucket | number of arrivals | number of departures
+    """
+    minute_dataframe = get_station_data(station_id)
+    bucket_dataframe = pd.DataFrame(columns=["half_hour","arrivals","departures"])
+    start_flag = 0
+    bikes_added = 0
+    bikes_subtracted = 0
+    time = None
+    for row in minute_dataframe:
+        minute = minute_dataframe.index.minute
+        if minute < 30 :
+            half_hour_bit = 0
+        else:
+            half_hour_bit = 1
+        if start_flag == 0:
+            previous_bikes_available = row['bike_available']
+            start_flag = 1
+            previous_half_hour = half_hour_bit
+            continue
+        if half_hour_bit != previous_half_hour_bit:
+            # Zero things out, append, and move on
+            bucket_dataframe.append({"half_hour":row["timestamp"],"arrivals":bikes_added,"departures":bikes_subtracted})
+            bikes_added = 0
+            bikes_subtracted = 0
+        else:
+            # Add to the running totals
+            value_add = bikes_available-previous_bikes_available
+            if value_add > 0:
+                bikes_added += value_add
+            else:
+                bikes_subtracted -= value_add
+        previous_bikes_available = row['bikes_available']
+        previous_half_hour_bit = half_hour_bit
+    return bucket_dataframe
+
+if __name__ == '__main__':
+    print get_bucketed_data(2).head
+
