@@ -40,9 +40,12 @@ def fit_poisson(station_id, include_rebalance = False, initial_time = datetime(2
     dep_poisson_model = sm.Poisson(y_dep, X_dep)
     dep_poisson_results = dep_poisson_model.fit(disp = 0)
 
+    # Calculate Error of the Above Models
+    error = sum((y_arr-arr_poisson_model.fittedvalues())**2)+sum((y_dep-dep_poisson_model.fittedvalues())**2)
+
     # print arr_poisson_results.summary(), dep_poisson_results.summary()
 
-    poisson_results = [arr_poisson_results, dep_poisson_results]
+    poisson_results = [arr_poisson_results, dep_poisson_results, error]
 
     return poisson_results
 
@@ -171,7 +174,7 @@ def save_poisson_results(include_rebalance = False):
     for station_id in station_ids:
         poisson_results = fit_poisson(station_id, include_rebalance,)
         file_out = open("/home/ubuntu/pickles/poisson_results_%s_%s.p" % (station_id, tag), "wb")
-        to_save_ps = (poisson_results)#[0].params, poisson_results[1].params)
+        to_save_ps = (poisson_results[0].params, poisson_results[1].params, poisson_results[2])
         pickle.dump(to_save_ps, file_out)
         file_out.close()
         print "did %s" % station_id
