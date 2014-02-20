@@ -41,7 +41,7 @@ def fit_poisson(station_id, include_rebalance = False, initial_time = datetime(2
     dep_poisson_results = dep_poisson_model.fit(disp = 0)
 
     # Calculate Error of the Above Models
-    error = sum((y_arr-arr_poisson_model.fittedvalues())**2)+sum((y_dep-dep_poisson_model.fittedvalues())**2)
+    error = (sum((y_arr-arr_poisson_model.fittedvalues())**2)+sum((y_dep-dep_poisson_model.fittedvalues())**2))/(len(y_arr)+len(y_dep))
 
     # print arr_poisson_results.summary(), dep_poisson_results.summary()
 
