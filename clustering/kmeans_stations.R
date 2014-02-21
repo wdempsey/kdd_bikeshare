@@ -30,15 +30,15 @@ write.table(stations, file = "~/bikeshare_data/stations_with_cluster.csv")
 # build a map with the stations color-coded by cluster
 map <- get_map(location = 'Washington, DC', source = 'osm', maptype = "roadmap", zoom = 12)
 
-stations$cluster = as.character(cluster$cluster)
-mapPoints <- ggmap(map) + geom_point(aes(x = longitude, y = latitude, colour = cluster), data = stations, size = 2) + scale_colour_hue(l=30) +
-  labs(title = 'Clustering of Bikeshare Stations in Washington, D.C.',
+stations$Cluster = as.character(cluster$cluster)
+mapPoints <- ggmap(map) + geom_point(aes(x = longitude, y = latitude, colour = Cluster), data = stations, size = 2) + scale_colour_hue(l=30) +
+  labs(title = '',
                                                  x = 'Latitude',
                                                  y = 'Longitude') #+ coord_cartesian(xlim = c(-77.15,-76.9), ylim = c(38.84,38.96)) 
 mapPoints
 
 mapPoints <- ggmap(map) + geom_point(aes(x = longitude, y = latitude), data = stations) + scale_colour_hue(l=30) +
-  labs(title = 'Bikeshare Stations in Washington, D.C.',
+  labs(title = '',
        x = 'Latitude',
        y = 'Longitude') #+ coord_cartesian(xlim = c(-77.15,-76.9), ylim = c(38.84,38.96)) 
 mapPoints
