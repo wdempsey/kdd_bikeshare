@@ -375,8 +375,7 @@ Using the rate parameters estimated by the Poisson model and the current number 
 \end{figure}
 Not unexpectedly, simulating with fewer bikes increases the likelihood that the station will be empty at the end of the two hours. Wether the station had 16 or 22 bikes at 9AM, our model tells us that bikes tend to leave this station over the next two hours, which is why our station simulations so infrequently end up with the same number of bikes they start with.
 
-
-So we can use simulation to infer conditional distributions - given an initial number of bikes at this time of the day, what is the distribution of the number of bikes we'll end up with after two hours? But we can also, given any initial value of bikes, calculate the probability of a bike station emptying out or filling at any point during the time interval. Then, for any tolerance level - I want the station to be empty during the next two hours less than one in five times - we can suggest the appropriate number of bikes to put at the station. The graph below demonstrates this idea.
+We use simulation to infer conditional distributions - given an initial number of bikes at this time of the day, what is the distribution of the number of bikes we'll end up with after two hours? Additionally, given any initial value of bikes, we can calculate the probability of a bike station emptying out or filling at any point during the time interval. Then, for any tolerance level, our method suggests the appropriate number of bikes to put at the station at the beginning of the timeframe. The graph below demonstrates this idea.
 
 \begin{figure} [!h]
 \caption{Distribution of bikes at a station given different initial number of bikes at a start time}
@@ -392,11 +391,37 @@ The black line is the probability that the station will be empty right at 9 AM. 
 
 Now we can pick a tolerance level and figure out how many bikes we need to put at the station to achieve this tolerance level. Say that we want to be 95\% sure (or have a tolerance of 5\%) that the station does not empty out in the next two hours. This plot shows us that we need to initially stock the station with 19 bikes to be 95\% sure.
 
+To assess how well our model predicts the number of bikes at a station, we used out-of-sample validation with a rolling time window. We used the first year of data to train an initial model. We then used the model fit to predict the next four time steps, where each time step is a 15-minute increment. We also predicted the number of bikes at the station two hours out.
 
-%\item We need good short term (`15 min' predictions) vs long term predictions of counts
-%\item We also want good prediction of the probability of being empty or full?
-%\item Need baseline and alternatives for comparison
-%\end{enumerate}
+We compared our predictions to the actual number of bikes at a station using mean squared error (MSE). We looked at two different versions of MSE: one that focused on the expected number of bikes at the station, and one in terms of the probability that a station would be empty or full. So we calculated MSE 15 minutes, 30 minutes, 45 minutes, 60 minutes, and 120 minutes in the future.
+
+Then, we added one day and one hour to our training set, retrained our model on the first year plus that additional day and hour, predicted the number of bikes 15, 30, 45, 60, and 120 minutes out, and compared these predictions to the actual numbers in our dataset. In other words, we repeated the process of training and out-of-sample testing on a different chunk of time. Hence if our first predictions were for a Monday from 9 AM to 10 AM, the second predictions are for a Tuesday from 10 AM to 11 AM.
+
+We retrain and predict over and over, steadily increasing the timespan of data our model can learn from. As the size of this training set increases, we end up predicting times and dates throughout the week.
+
+Once we're done with all our predictions, we calculate the mean squared error at each time point. To calculate MSE in terms of expected number of bikes, we used our Poisson model to predict the number of bikes at a station. So for example, the MSE at 15 minutes is calculated using
+
+
+
+where n is the number of times the model is fit using the rolling training set process described above. At expected, the further out we try to predict, the worse our predictions tend to be - two hours are, our guesses are off by plus or minus 5 bikes, on average.
+
+In Figure~\ref{fig:mse_poisson_bikes.png} terms of number of bikes for several time points after the end of the training window.
+\begin{figure} [!h]
+\caption{Square root of mean-squared error between predicted and actual number of bikes over time}
+\centering
+\includegraphics[scale = 0.4]{mse_poisson_bikes.png}
+\end{figure}
+
+We visualize the distribution of prediction errors generated during the validation. Each graph displays the difference between our prediction and the actual number of bikes for all training and test sets described above. There are 90 such test sets, so each histogram displays 90 error terms. We have broken them up based on how far in advance the model was making predictions.
+
+When predicting 15 minutes in advance, 54\% of our predictions are within 1 bike of the actual bikes at the station, 82\% are within 3 bikes, and 93\% are within 5 bikes.
+\begin{figure} [!h]
+\caption{Error for 15 minute prediction}
+\centering
+\includegraphics[scale = 0.4]{Error_for_15_Minute.png}
+\end{figure}
+These results demonstrate that our method gives a proficient on-the-ground-understanding of what will have at a bikeshare station next.
+
 \vspace{0.5cm}
 
 \section{Summary}
