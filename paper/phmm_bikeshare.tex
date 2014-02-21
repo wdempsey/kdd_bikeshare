@@ -35,8 +35,7 @@
 \maketitle
 
 \begin{abstract}
-A bicycle sharing system (bikeshare) is a service in which individuals can check-out bicycles from stations for a short period of time and drop them off at any of the stations in the system. The main purpose of bikeshare is to provide transportation for short trips, and it has become common in many cities including New York, Paris, and Beijing. One of the issues with bikeshare is the possible imbalance of bikes across stations, specifically that some stations may have no bikes to check-out while other stations have no slots for arriving bikes. Many cities employ re-distribution techniques on an ad hoc basis. In order to improve the redistribution process, we must estimate the expected number of bikes at a station at some point in the future, as well as the chance that the station becomes empty or full in that time window. To do this, we model the arrival and departure of bikes as a log Gaussian Cox Process. We build a block approximation of the underlying Gaussian processes by 
-ing  neighborhoods, which will allow for parallel estimation. Moreover, we build online methods for updating the parameters from streaming station data. In order to assess performance, we apply these techniques to the Washington D.C. bikeshare data. We end with a brief discussion of how our approach can be used in analyzing new stations without sufficient data and as well as new networks/cities. 
+A bicycle sharing system (bikeshare) is a service in which individuals can check-out bicycles from stations for a short period of time and drop them off at any of the stations in the system. The main purpose of bikeshare is to provide transportation for short trips, and it has become common in many cities including New York, Paris, and Beijing. One of the issues with bikeshare is the possible imbalance of bikes across stations, specifically that some stations may have no bikes to check-out while other stations have no slots for arriving bikes. Many cities employ re-distribution techniques on an ad hoc basis. In order to improve the redistribution process, we must estimate the expected number of bikes at a station at some point in the future, as well as the chance that the station becomes empty or full in that time window. To do this, we model the arrival and departure of bikes as a log Gaussian Cox Process. We build a block approximation of the underlying Gaussian processes by clustering  neighborhoods, which will allow for parallel estimation. Moreover, we build online methods for updating the parameters from streaming station data. In order to assess performance, we apply these techniques to the Washington, D.C., bikeshare data. We end with a brief discussion of how our approach can be used in analyzing new stations without sufficient data and as well as new networks/cities. 
 \end{abstract}
 
 
@@ -44,18 +43,18 @@ ing  neighborhoods, which will allow for parallel estimation. Moreover, we build
 
 \section{Introduction}
 
-Bicycle Sharing systems have become ubiqutious over the past several years, providing an alternative mode of transportation and improving the connectivity of their respective cities.  These networks (typically referred to as bikeshare) consist of a number of stations distributed throughout the city with individuals able to check-out bicycles from stations for a short period of time before dropping them off at another station in the system.  A common issue with bikeshare is that traffic patterns commonly result in bike imbalance across stations, with some stations being either empty or full.  We call these {\bf extreme} stations.  This leads to delays as bikeshare users must find alternate stations, while also lowering overall ridership due to reliability concerns. Bikeshare systems tackle this issue by some form of redistribution; however, the methods for redistribution of bikes is ad hoc and may be sub-optimal.
+Bicycle Sharing systems have become ubiqutious over the past several years, providing an alternative mode of transportation and improving the connectivity of their respective cities.  These networks (typically referred to as bikeshare) consist of a number of stations distributed throughout the city with individuals able to check-out bicycles from stations for a short period of time before dropping them off at another station in the system.  A common issue with bikeshare is that traffic patterns commonly result in bike imbalance across stations, with some stations being either empty or full.  We call these {\bf extreme} stations.  These imbalances can lead to delays as bikeshare users must find alternate stations, while also lowering overall ridership due to reliability concerns. Bikeshare systems tackle this issue by some form of redistribution; however, the methods for redistribution of bikes are ad hoc and may be sub-optimal.
 
-For a given time in the future, we wish to predict the number of bikes at the station as well as the probability of the station becoming extreme at some point in this time window given its current state as well as auxiliary variables.  This will allow us to predict extreme stations as well as provide an estimated optimal number of bikes per station during redistribution to avoid extreme events in the next time window.
+For a given time in the future and a station, we aim to predict the number of bikes at the station as well as the probability that the station will become extreme at some point in this time window given its current state as well as auxiliary variables.  This will allow us to predict extreme stations as well as provide an estimated optimal number of bikes that should be at that station to avoid extreme events in the next time window. This foresight will allow bikeshare companies to anticipate extreme stations and keep them from occurring.
 
 We model arrival and departure of bikes at each station as a pair of correlated Poisson Processes.  We propose then modeling the entire bikeshare system as a set of correlated Poisson Processes, where two pairs are correlated based on their spatial proximity.  This set is therefore modeled as a log-Gaussian Cox Process in which we capture station-level, temporal, and spatial random effects.  
 
-This approach is computationally intensive, and therefore we propose approximation methods for estimation, which allow us to run estimation in parallel and provide necessary speedups at the cost of some inexactness.  The bikeshare data analyzed is also streaming, and therefore we provide an online algorithm which updates parameter estimates given the new observations.  This allows us to update models given new data without re-fitting the entire model everytime.  We end with an application of our techniques to Washington D.C. bikeshare data.  We analyze the performance, and provide methods for prediction of new stations given estimation from surrounding stations.
+This approach is computationally intensive, and therefore we propose approximation methods for estimation, which allow us to run estimation in parallel and provide necessary speedups at the cost of some inexactness.  The bikeshare data analyzed is also streaming, and therefore we provide an online algorithm that updates parameter estimates given the new observations.  This approach allows for updating models given new data without re-fitting the entire model every time.  We end with an application of our techniques to Washington, D.C., bikeshare data.  We analyze the performance of our method and provide methods for prediction of new stations given estimation from surrounding stations.
 
 
-\section{Arrival and Departure Processes}
+\section{Arrival and Departure Processes at a Single Station}
 
-We start by considering the temporal process at a given station.  Let $Y_i (t)$ denote the number of bikes at the station at time $t$.  The bike count is an integer-valued process with jumps.  We use $Y(t)$ to define a pair of counting processes which we then model.
+We start by considering the temporal process at a given station.  Let $Y_i (t)$ denote the number of bikes at the station at time $t$.  The bike count is an integer-valued process with jumps.  We use $Y(t)$ to define a pair of counting processes that we then model.
 
 The {\bf arrival counting process}, $N_i^{a} (t)$ can be defined as the number of bikes arriving at the station up to time~$t$.  Assuming a finite number of bike arrival times in any interval, we can then define these counting processes as:
 \begin{align}
@@ -63,17 +62,30 @@ N^{a} (t) &= \sum_{s < t} \left | Y_i (s) - Y_i (s-) \right | {\bf 1} \left[ Y_i
 \end{align}
 The {\bf departure counting process}, $N_i^{d} (t)$ can be defined likewise for bikes leaving the station.  A consideration is that a station which is empty cannot have departures.  Therefore, $Y_i (t) = 0$ in some interval~$[t, t+\delta]$ implies $N_i^{d} (t+\delta) -N_i^{d} (t) = 0$.   Let $A_{d}$ be the set of all such windows.  Then, we assume the departure counting process to be an inhomogenous Poisson point process on the complement of this set, $\mathbb{R}^{+} - A_{d}$.  We consider the same to be true of the arrival process and the window of all times for which the station is full, $A_{f}$.
 
-For now, we ignore these constraints on the process.  We assume that at a station, the arrival and departure counting processes are correlated.  This implies that we can model the pair as a Cox process where the rate parameters includes a station block effect. That is, $N_i^(a) (t)$ ($N_i^{d} (t)$ respectively) are poisson processes with rate parameter $\lambda_i^{a} (t)$ ($\lambda_i^{d} (t)$ respectively) where
+For now, we ignore these constraints on the process.  We assume that at a station, the arrival and departure counting processes are correlated.  This implies that we can model the pair as a Cox process where the rate parameters includes a station block effect. That is, $N_i^{a} (t)$ ($N_i^{d} (t)$ respectively) are poisson processes with rate parameter $\lambda_i^{a} (t)$ ($\lambda_i^{d} (t)$ respectively) where
 \begin{align}
 \log \left( \lambda_i^{a} (t) \right) = \mu^{a}_i(t) + b_i
 \end{align}
-\noindent where $b_i$ is a random station effect.  The rate parameter for the departure process can be defined similarly.
+\noindent where $b_i$ is a random station effect.  The rate parameter for the departure process is defined similarly.
 
 \section{Bikeshare System}
 
-We now consider the complete bikeshare system.  Stations in close geographic proximity provide auxiliary information which should be leveraged.  For example, if a station has many arrivals in a given morning, this is a strong indicator that the number of arrivals at a neighboring station will also be high.  We wish to introduce the spatial dependency into our current model.  
+We now consider the complete bikeshare system.  Stations in close geographic proximity provide auxiliary information which should be leveraged.  For example, if a station has many arrivals in a given morning, this is a strong indicator that the number of arrivals at a neighboring station will also be high. Figure~\ref{fig:stations_54_106_ave}  illustrates this behavior of stations that are in close proximity to one another. These two stations are .05 miles apart, and on average, we can see that they have similar behavior.
+\begin{figure} [!h]
+\caption{Average number of bikes at two Capital Bikeshare stations closely located to one another}
+\centering
+\includegraphics[scale = 0.4]{stations_54_106_ave.png}
+\end{figure}
+We see the same general trends when looking at a randomly chosen subset of days for one of the stations in Figure~\ref{fig:station_54_6_days}
+\begin{figure} [!h]
+\caption{Number of bikes at one Capital Bikeshare station over the course of six randomly chosen days}
+\centering
+\includegraphics[scale = 0.4]{station_54_6_days.png}
+\end{figure}
 
-We use a log-Gaussian Cox Process to do this in which spatial dependence is captured through random effects in the stochastic rate parameters.  Let $N_i (t) = (N_i^(a) (t), N_i^{d} (t))$ be the pair of counting processes for station~$i$.  Then we can assume that the arrival rate parameters are associated as are the departure rate parameters.  So that
+We wish to introduce the spatial dependency into our current model because of this correlation 
+
+A log-Gaussian Cox Process captures this spatial dependence through random effects in the stochastic rate parameters.  Let $N_i (t) = (N_i^{a} (t), N_i^{d} (t))$ be the pair of counting processes for station~$i$.  Then we can assume that the arrival rate parameters are associated as are the departure rate parameters such that
 \begin{align}
 \log \left( \lambda_i^{a} (t) \right) = \mu^{a}_i(t) + b_i + Z(t;i)
 \end{align}
@@ -82,9 +94,9 @@ We use a log-Gaussian Cox Process to do this in which spatial dependence is capt
 \text{cov} ( Z(t;i) , Z(t^\prime; j) ) =& \sigma_0^2 \delta_{t t^\prime}  \delta_{i j} + \sigma_1^2  \delta_{i j} \\
 &+ \sigma_2^2 \exp \left( -\frac{ d(i,t),(j,t)) }{\lambda} \right)
 \end{align*}
-\noindent where $d ( (i,t) , (j,t))$ is a specified distance metric. In our work we consider the $l_2$ distance.  The first term is measurement error at time~$t$ at station~$i$, the second is the random station effect, and the third is a general mean associated with all the arrival parameters.
+\noindent where $d ( (i,t) , (j,t))$ is a specified distance metric. In our work we consider the $l_1$ distance.  The first term is measurement error at time~$t$ at station~$i$, the second is the random station effect, and the third is a general mean associated with all the arrival parameters.
 
-Covariates can be chosen to account for temporal trends.  We can choose a factor model for $\mu^{a})i (t)$ which would model fixed effects attributable to time of day, month, and year, or a basis expansion in terms of low-order Fourier terms.  In this case, the distance metric will only depend on the location of the stations and the third term will only be included when $t$ and $t^\prime$ are equal.
+Covariates can be chosen to account for temporal trends.  We can choose a factor model for $\mu_i^{a} (t)$ that models fixed effects attributable to time of day, month, and year, or a basis expansion in terms of low-order Fourier terms.  In this case, the distance metric will only depend on the location of the stations and the third term will only be included when $t$ and $t^\prime$ are equal.
 
 We assume a similar model for the departure rates.  The random block effects link the arrival and departure processes at a given station, and the third term in the gaussian process links the rate parameters for the arrival processes across stations.  The departure processes across stations are linked via a similar term, albeit different parameter values, $(\sigma_3^2, \lambda^\prime)$.
 
@@ -100,14 +112,14 @@ Suppose that there are $n$ total stations. Now take the observations at a partic
 \begin{align*}
 l ( \theta; Y ) = \sum_{i=1}^T  E_{\lambda | \theta} [l^{\star} ( \lambda; Y (t_i)]
 \end{align*}
-In our setting, the likelihood for each time window consists of estimating an expectation over the finite-dimensional distribution of $\lambda$.  The number of stations is of the order of several hundred.  Washington D.C. has roughly $250$ stations, and therefore the dimension of our expectation is approximately $500$.  The high dimensionality of the integration appears formidable. 
+In our setting, the likelihood for each time window consists of estimating an expectation over the finite-dimensional distribution of $\lambda$.  The number of stations is of the order of several hundred.  Washington, D.C. ,has roughly $250$ stations, and therefore the dimension of our expectation is approximately $500$.  The high dimensionality of the integration appears formidable. 
 
 \subsection{Monte Carlo Estimation} \label{mc_estimation}
 Standard Monte Carlo methods would employ the estimate:
 \begin{equation}
 l_{MC} (\theta) = s^{-1} \sum_{j=1}^s l \left( \theta | Y, \lambda^{(j)} \right)
 \end{equation}
-\noindent where $\lambda^{(j)}$ are simulated realisations of $\lambda$.  This is highly inefficient.  Based on the work of Geyer (1999) and Diggle et al. (2013), we use the following to provide robust, efficient estimation of the log-likelihood function.  Given un-normalized joint density of $X$ and $\lambda$, $f(X, \lambda | \theta)$, then 
+\noindent where $\lambda^{(j)}$ are simulated realizations of $\lambda$.  This is highly inefficient.  Based on the work of Geyer (1999) and Diggle et al. (2013), we use the following to provide robust, efficient estimation of the log-likelihood function.  Given un-normalized joint density of $X$ and $\lambda$, $f(X, \lambda | \theta)$, then 
 \begin{align}
 \hat{L} \left( \theta \right) =& \log \big \{ s^{-1} \sum_{j=1}^s r \left( Y , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \label{approx_lik} \\
 &- \log \big \{ s^{-1} \sum_{j=1}^s r \left( X^{(j)} , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \notag
@@ -143,30 +155,30 @@ Algorithm \ref{applik_alg} outlines pseudocode for finding the maximum likelihoo
 \end{algorithmic}
 \end{algorithm}
 
-It rests to choose the estimate $\theta_0 = (\mu_0 , {\bf \sigma}_0^2)$.  We estimate the parameters for each Poisson process independently to get initial estimates for the mean parameters, $\mu_0$.  We take the simple average of the estimated mean squared errors for each station, $\bar{\sigma}_i^2 = \left( \bar{\sigma}_{i,a}^2 ,\bar{\sigma}_{i,d}^2 \right)$.  This provides an estimate for $\text{var} (Y)$ across stations.   We use the relationship between the variance of the observed counts, and the variance of the stochastic rate parameters.  Since we have assumed the variance to be stationary, we use the conditional variance formula to show that:
+It only remains to choose the estimate $\theta_0 = (\mu_0 , {\bf \sigma}_0^2)$.  We estimate the parameters for each Poisson process independently to get initial estimates for the mean parameters, $\mu_0$.  We take the simple average of the estimated mean squared errors for each station, $\bar{\sigma}_i^2 = \left( \bar{\sigma}_{i,a}^2 ,\bar{\sigma}_{i,d}^2 \right)$.  This provides an estimate for $\text{var} (Y)$ across stations.   We use the relationship between the variance of the observed counts, and the variance of the stochastic rate parameters.  Since we have assumed the variance to be stationary, we use the conditional variance formula to show that:
 \begin{align*} 
 \text{var} \left( Y \right) &= \text{E} \left[ \text{var} \left( Y | \lambda \right) \right] + \text{var} \left( \text{E} \left[ Y | \lambda \right] \right) \\
 &= \text{E} \left[ \text{diag} (\lambda) \right] + \text{var} \left( \lambda \right) \\
 \end{align*}
-\noindent So we can use the variability of the count data, and subtract the rate parameters from the diagonal to approximate $\text{var}(\lambda)$.  This implies that if we build a semi-variogram, we can use these to estimate $\sigma_1^2$ and $\lambda$.  Moreover, we can estimate the station-level block effects by matching the arrival and departure average mean square errors at the station level, and measuring the correlation, $\hat{\sigma}_1^2 = \frac{1}{n} \sum_i ( \bar{\sigma}_{i,a}^2  \cdot \bar{\sigma}_{i,a}^2 )^2$.  We can then create the initial estimate for the measurement error by
+\noindent Then we can use the variability of the count data, and subtract the rate parameters from the diagonal to approximate $\text{var}(\lambda)$.  This implies that if we build a semi-variogram, we can use these to estimate $\sigma_1^2$ and $\lambda$.  Moreover, we can estimate the station-level block effects by matching the arrival and departure average mean square errors at the station level and measure the correlation, $\hat{\sigma}_1^2 = \frac{1}{n} \sum_i ( \bar{\sigma}_{i,a}^2  \cdot \bar{\sigma}_{i,a}^2 )^2$.  We can then create the initial estimate for the measurement error by
 \begin{equation*}
 \sigma_0^2 \approx \frac{1}{n}\sum_i \left[ \sigma^2_{i,a} - \lambda_{i,a} + \sigma^2_{i,d} - \lambda_{i,d}  - 2\cdot \left(\sigma_1^2 - \sigma_2^2 \right) \right]
 \end{equation*}
 
 \section{A Parallel Approximate Estimation Algorithm} \label{parallel_estimation}
 
-The assumed dependence among all counting processes makes maximum likelihood estimation computationally intensive.  This is due to the covariance being positive between any two stations.  Therefore, we must model the entire system of counting processes simultaneously and the dimension of the gaussian process becomes prohibitely large.  For example, there are over $100$ loading stations in Chicago for which we have almost a year of data.  If we disaggregate the data to half-hour windows, the complete set of observations is over one-million.  Given the computational cost of the high-dimensional integral, we cannot hope to estimate our model in a practical amount of time.
+The assumed dependence among all counting processes makes maximum likelihood estimation computationally intensive.  This is due to the covariance being positive between any two stations.  Therefore, we must model the entire system of counting processes simultaneously and the dimension of the gaussian process becomes prohibitively large.  For example, there are over $100$ loading stations in Chicago for which we have almost a year of data.  If we disaggregate the data to half-hour windows, the complete set of observations is over one-million.  Given the computational cost of the high-dimensional integral, we cannot hope to estimate our model in a practical amount of time.
 
-We start by assuming we capture the temporal dependence through a factor model.  However, we still must worry about the spatial dependence as the dimension would still exceed $10,000$.   However, the dependency, while positive, is weak for stations that are well separated.  Therefore, we can approximate the true underlying gaussian process by a block-approximate gaussian process. This exploits the weak dependence between stations that are far apart.  
+We start by assuming we capture the temporal dependence through a factor model.  However, we still must worry about the spatial dependence as the dimension would still exceed $10,000$.   However, the dependency, while positive, is weak for stations that are well-separated.  Therefore, we can approximate the true underlying gaussian process by a block-approximate gaussian process, which exploits the weak dependence between stations that are far apart.  
 
 \subsection{Hierarchical Clustering}\label{clustering}
 In order to approximate the gaussian process, we must determine the independent station blocks.  This requires partitioning the entire set of stations, $\Omega = \{ {\bf z}_i = (x_i, y_i) \, , i = 1,\ldots S\}$, where $(x_i, y_i)$ are the latitude and longitude for station~$i$. The resulting partition must capture high in-block and low between-block covariance.  
 
 We assumed that the spatial covariance between stations is a decreasing function of the Euclidean distance between the two points.  In particular, we describe the relationship via a squared exponential covariance function, $K(\| {\bf z}_i - {\bf z}_j \|) = \sigma_3^2 \exp \left( - \| {\bf z}_i - {\bf z}_j \|^2/ \lambda \right)$, where $\lambda$ is a range parameter.  This is the limit of the Matern covariance function, a set of stationary covariance functions typically used in spatial statistics.  If we knew the range parameter, $\lambda$, a priori then the partitioning of $\Omega$ can reflect the range of the spatial process.  However, the range is typically unknown before fitting the model, and therefore cannot be used to build the partition.
 
-We therefore perform $k$-means clustering using Euclidean distance.  The choice of $k$ so that clusters reflect true neighborhood clustering; moreover, $k$ larger, implies weaker approximations, but faster estimation, while $k$ smaller, implies the opposite.  We therefore choose $k$ to balance the computational-approximation tradeoff.
+We therefore perform $k$-means clustering using $l_1$ distance.  The choice of $k$ clusters reflect true neighborhood clustering; moreover, a larger $k$ implies weaker approximations, but faster estimation, while a smaller $k$ implies the opposite.  We therefore choose $k$ to balance the computational-approximation tradeoff.
 
-Figure~\ref{fig:cluster_map} shows the hierarchical clustering applied to the Washington D.C. bikeshare stations.  The clusters reflect the well defined neighborhoods.  {\bf Discuss the size of the clusters and the neighborhoods}
+Figure~\ref{fig:cluster_map} shows the hierarchical clustering applied to the Washington D.C. bikeshare stations.  The clusters reflect the well-defined neighborhoods for the most part. We focus our efforts on the clusters that most closely match well-defined neighborhoods.
 
 \begin{figure} [!h]
 \caption{Hierarchical K-means Clustering of Bikeshare Stations in Washington, D.C.}
@@ -175,7 +187,7 @@ Figure~\ref{fig:cluster_map} shows the hierarchical clustering applied to the Wa
 \label{fig:cluster_map}
 \end{figure}
 
-We employ the clustering without knowledge of the range parameter; however, once we have the maximum likelihood estimate, $\hat{\theta}$, we will have an estimate of the range parameter, $\hat{\lambda}$.  The $k$-means clustering algorithm does not consider linear scaling of the distance function.  Therefore, if we simply re-estimate the clusters using the modified Euclidean distance, $\|{\bf z}_i - {\bf z}_j \| / \hat{\lambda}$, we will achieve the same partition.  However, we can now use the range estimate, to choose $k$ more  
+We employ the clustering without knowledge of the range parameter; however, once we have the maximum likelihood estimate, $\hat{\theta}$, we will have an estimate of the range parameter, $\hat{\lambda}$.  The $k$-means clustering algorithm does not consider linear scaling of the distance function.  Therefore, if we simply re-estimate the clusters using the modified Euclidean distance, $\|{\bf z}_i - {\bf z}_j \| / \hat{\lambda}$, we will achieve the same partition.  However, we can now use the range estimate, to choose $k$ more. 
 
 \subsection{Parallel Estimation}
 
@@ -202,7 +214,10 @@ Given the approximate maximum likelihood estimate, $\theta$, we now turn our att
 
 \section{Prediction}
 
-For a particular station~$i$ at a particular time~$t$, we know the number of bikes at the station, $Y_i(t)$.  We are interested in estimation of the expected number of bikes at some future time point, $t+\delta$.  To answer the question of re-distribution, we also need to know the probability that the number of bikes reaches an extreme value in the time window $(t, t+\delta)$.  Therefore, assuming a maximum number of spots $\tau$, we want to estimate $\text{E} \left[ Y(t+ \delta) | Y(t) , \hat{\theta} \right]$ and $\text{P} [ Y(s) = 0 \text{ or } Y(s) = \tau \text{ for some } s \in (t, t+\delta) | Y(t), \hat{\theta} ]$.  
+For a particular station~$i$ at a particular time~$t$, we know the number of bikes at the station, $Y_i(t)$.  We are interested in estimation of the expected number of bikes at some future time point, $t+\delta$.  To answer the question of re-distribution, we also need to know the probability that the number of bikes reaches an extreme value in the time window $(t, t+\delta)$.  Therefore, assuming a maximum number of spots $\tau$, we want to estimate $\text{E} \left[ Y(t+ \delta) | Y(t) , \hat{\theta} \right]$ and 
+\begin{equation*}
+\text{P} [ Y(s) = 0 \text{ or } Y(s) = \tau \text{ for some } s \in (t, t+\delta) | Y(t), \hat{\theta} ].  
+\end{equation*}
 
 \subsection{Expected Number of Bikes}
 Our block approximation from section~\ref{parallel_estimation} allows estimation of both quantities to be done separately for each cluster.  Suppose station~$i$ sits inside cluster $U \subset \Omega$.  Let the expected rate parameter at time~$s$ given $(Y,\hat{\theta})$ to be given by~$\hat{\lambda} (s)$.  Then the expected number of arrivals in the window is given by $\int_{t}^{t+\delta} \hat{\lambda}_a (s) ds$.  The expected number of departures is the same formula with the integrand replaced by $\hat{\lambda}_d$.  Then we can estimate the expected number of bikes at the station by:
@@ -222,11 +237,11 @@ P [ \lambda_i (s) | Y, \hat{\theta} ] \propto \int P [ Y | \lambda (s), \hat{\th
 
 \subsection{Probability of Station Being Extreme}
 
-To calculate the probability of station~$j$ being empty in the time window (denoted $P_j (t, t+\delta)$)requires a simulation-based approach.  Suppose we are interested in the probability over the smallest window, $(t, t+\delta)$.  We start by generating the constant arrival and departure rate parameters in the window for station~$j$ in $U$, $\lambda^{a}_j$ and $\lambda^{d}_j$ respectively. 
+To calculate the probability of station~$j$ being empty in the time window (denoted $P_j (t, t+\delta)$) requires a simulation-based approach.  Suppose we are interested in the probability over the smallest window, $(t, t+\delta)$.  We start by generating the constant arrival and departure rate parameters in the window for station~$j$ in $U$, $\lambda^{a}_j$ and $\lambda^{d}_j$ respectively. 
 
-Then for a particular station, we can wish to simulate the arrivals and departure of bikes.  Given the rate parameters, the arrival and departure processes are independent and therefore by the superposition principle implies that the first event has an exponential waiting time, $T_1$, with rate parameter $\lambda_j = \lambda^{a}_j + \lambda^{d}_j$.  The probability that the first event is an arrival is $\lambda^{a}_j / \lambda_j$.   If $T_1 < \delta$, then we have an event in the time window.  If that event was an arrival, then we set $Y(t+T_1) = Y(t) + 1$.  If the event was a departure, then we subtract one from the current number.  We then continue this process until $\sum_{k} T_k > \delta$.  We then have an random instance of $\{ Y_j(s) \, s \in (t, t+\delta) | Y_j(t) \}$.  We do this for each station~$j$ in $U$.
+Then for a particular station, we can wish to simulate the arrivals and departure of bikes.  Given the rate parameters, the arrival and departure processes are independent, and, therefore, the superposition principle implies that the first event has an exponential waiting time, $T_1$, with rate parameter $\lambda_j = \lambda^{a}_j + \lambda^{d}_j$.  The probability that the first event is an arrival is $\lambda^{a}_j / \lambda_j$.   If $T_1 < \delta$, then we have an event in the time window.  If that event was an arrival, then we set $Y(t+T_1) = Y(t) + 1$.  If the event was a departure, then we subtract one from the current number.  We then continue this process until $\sum_{k} T_k > \delta$.  We then have a random instance of $\{ Y_j(s) \, s \in (t, t+\delta) | Y_j(t) \}$.  We do this for each station~$j$ in $U$.
 
-The number of bikes is bounded to be in $[0, \tau_j]$, where $\tau_j$ is the maximum number of slots at station~$j$.  Therefore, if the number of bikes is zero in the time window and we cannot generate a departure.  The same is true for a full station and generating arrivals.  We can handle these constraints in two ways.  We can continue to generate these departures and arrivals but ignore those that push the process outside of its boundaries.  By the thinning principle, this is equivalent to only generating arrivals at the rate $\lambda^{a}_j$ when the station is empty or departures at the rate $\lambda^{d}_j$ when the station is full.   On the other hand, instead of ignoring the arrivals, we can send these arrivals to nearby stations.  This will be more accurate; however, we would then need to estimate the travel time to the nearest station that is not full.  We do not currently employ such methods, as they add a serious additional computational obstacle.  However, such an approach would be easy to insert into the current framework
+The number of bikes is bounded to be in $[0, \tau_j]$, where $\tau_j$ is the maximum number of slots at station~$j$.  Therefore, if the number of bikes is zero in the time window, we cannot generate a departure.  The same is true for a full station and generating arrivals.  We can handle these constraints in two ways.  We can continue to generate these departures and arrivals but ignore those that push the process outside of its boundaries.  By the thinning principle, this is equivalent to only generating arrivals at the rate $\lambda^{a}_j$ when the station is empty or departures at the rate $\lambda^{d}_j$ when the station is full.   On the other hand, instead of ignoring the arrivals, we can send these arrivals to nearby stations.  This will be more accurate; however, we would then need to estimate the travel time to the nearest station that is not full.  We do not currently employ such methods, as they add a serious additional computational obstacle.  However, our current framework is highly adaptable, and we could incorporate this approach.
 
 Let $\Delta^{(i)}_j$ be an indicator that the number of bikes at station $j$ reaches an extreme position in the time window for the~$i$th instance from our simulation.  Then we estimate the probability by the simple average:
 \begin{equation*}
@@ -236,7 +251,7 @@ Let $\Delta^{(i)}_j$ be an indicator that the number of bikes at station $j$ rea
 
 \subsection{Proper Distribution of Bikes}
 
-The above provides detailed information which would allow re-distribution of bikes to be done proactively before stations become empy.  We now use answer the question of appropriate distribution of bikes.  That is, before commuting hours, what is the correct distribution of bikes in the city to minimize the chance of a station becoming extreme. 
+The above provides detailed information that will allow bikeshare companies to redistribute bikes  proactively before stations become empty.  We now answer the question of appropriate distribution of bikes.  That is, before commuting hours, what is the correct distribution of bikes across stations in a city that will minimize the chance of a station becoming extreme? 
 
 Let $Y$ be a vector containing the number of bikes at each station in the city.  Then we can calculate the probabilty of each stations becoming extreme in the desired time window, $P$.  For example, we may be interested in the time window that lasts from one hour before rush hour to several hours after rush hour ($6$AM to $12$PM for instance).  We then assume some objective function of the probabilities, $f: P \rightarrow \mathbb{R}$.  For example, we may be interested in minimizing the maximum, $f(P) = \max_j P_j$, or in miniming the sum of squares, $f(P) = \sum_j P_j^2$.  
 
@@ -332,18 +347,6 @@ In our analysis of the Washington, D.C., bikeshare data, a few patterns emerged 
 \includegraphics[scale = 0.35]{stations_over_time.png}
 \end{figure}
 
-\begin{figure} [!h]
-\caption{Average number of bikes at two Capital Bikeshare stations closely located to one another}
-\centering
-\includegraphics[scale = 0.4]{station_54_6_days.png}
-\end{figure}
-
-\begin{figure} [!h]
-\caption{Number of bikes at one Capital Bikeshare station over the course of six randomly chosen days}
-\centering
-\includegraphics[scale = 0.4]{stations_54_106_ave.png}
-\end{figure}
-
 Different usage patterns may manifest in other bikeshare systems. For example, a drastic elevation change in a city could lead to riders using bikeshare on the way downhill but other public transit options on the way uphill. CITATION: J. H. Lin and T. C. Chou, ?A Geo-Aware and VRP-Based Public Bicycle Redistribution System,? International Journal of Vehicular Technology, vol. 2012, Article ID 963427, 14 pages, 2012. doi:10.1155/2012/963427
 
 \vspace{0.5cm}
@@ -371,6 +374,7 @@ F_2(j, t, \delta) = \sum_{t^\prime = t} \| \Delta_j(t,t + \delta) - P_{j,\hat{\t
 \vspace{0.5cm}
 
 \section{Summary}
+Bikeshare widens the transportation options for a city's citizens, and makes other public transportation options more feasible by connecting people who live at farther distances to bus stops and train stations by bike stations. 
 
 \bibliographystyle{plain}
 \bibliography{bibliography}
