@@ -76,7 +76,7 @@ We assume a similar model for the departure rates.  The random block effects lin
 
 Suppose that there are $n$ total stations. Now take the observations at a particular time window, $(t , t+\delta)$ (we model half-hour windows).  The general form of the Cox Process Likelihood associated with the data, \\ $Y(t) = \left( (Y_1^{a} (t), Y_1^{d} (t)), \ldots, (Y_n^{a} (t), Y_n^{d} (t)) \right) $ is:
 \begin{align*}
-&l_t( \theta; Y(t) ) = \int_{\Lambda} P(X,  \Lambda | \theta) d \Lambda \\
+&l_t( \theta; Y(t) ) = \int_{\Lambda} P(Y,  \Lambda | \theta) d \Lambda \\
 &= \int\prod_{i=1}^n \frac{\lambda_i^{a} \lambda_i^{d}}{Y_i^{a} Y_i^{d}} \frac{e^{-\lambda_i^{d}-\lambda_i^{a} }}{(2 \pi)^{n} |\Sigma|^{1/2}} \exp \left( (\lambda - \mu (\theta) )^T \Sigma (\theta) ^{-1} (\lambda - \mu (\theta) ) \right) d \lambda \\
 &= E_{\lambda | \theta} [l^{\star} ( \lambda; Y(t))]
 \end{align*}
@@ -89,16 +89,30 @@ In our setting, the likelihood for each time window consists of estimating an ex
 \subsection{Monte Carlo Estimation} \label{mc_estimation}
 Standard Monte Carlo methods would employ the estimate:
 \begin{equation}
-l_{MC} (\theta) = s^{-1} \sum_{j=1}^s l \left( \theta | X, \lambda^{(j)} \right)
+l_{MC} (\theta) = s^{-1} \sum_{j=1}^s l \left( \theta | Y, \lambda^{(j)} \right)
 \end{equation}
 \noindent where $\lambda^{(j)}$ are simulated realisations of $\lambda$.  This is highly inefficient.  Based on the work of Geyer (1999) and Diggle et al. (2013), we use the following to provide robust, efficient estimation of the log-likelihood function.  Given un-normalized joint density of $X$ and $\lambda$, $f(X, \lambda | \theta)$, then 
 \begin{align}
-\hat{L} \left( \theta \right) =& \log \big \{ s^{-1} \sum_{j=1}^s r \left( X , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \label{approx_lik} \\
+\hat{L} \left( \theta \right) =& \log \big \{ s^{-1} \sum_{j=1}^s r \left( Y , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \label{approx_lik} \\
 &- \log \big \{ s^{-1} \sum_{j=1}^s r \left( X^{(j)} , \lambda^{(j)} , \theta, \theta_0 \right) \big \} \notag
 \end{align}
-\noindent where $r(X, \lambda, \theta, \theta_0) = f(X, \lambda | \theta)/f(X, \lambda | \theta_0)$. The result provides a Monte Carlo approximation to the log-likelihood function, and consequently the maximum likelihood estimate, $\hat{\theta}$, by simulating the process at a single value, $\theta_0$.  The accuracy is a function of the number of simulations, $s$, and the proximity of $\theta_0$ to $\theta$.
+\noindent where $r(X, \lambda, \theta, \theta_0) = f(Y, \lambda | \theta)/f(Y, \lambda | \theta_0)$. The result provides a Monte Carlo approximation to the log-likelihood function, and consequently the maximum likelihood estimate, $\hat{\theta}$, by simulating the process at a single value, $\theta_0$.  The accuracy is a function of the number of simulations, $s$, and the proximity of $\theta_0$ to $\theta$.   Assuming $n$ stations, the density is given by:
+\begin{align*}
+&\left[ \prod_{i=1}^n \frac{(\lambda_i^a)^{Y_i^a}(\lambda_i^d)^{Y_i^d}}{Y_i^a ! Y_i^d !} e^{-\lambda_i^a - \lambda_i^d} \right] \\
+\times& \frac{1}{\sqrt{2 \pi}^n |\Sigma|^{1/2}} \exp \left( (\lambda - \mu(\theta))^T \Sigma(\theta)^{-1} (\lambda - \mu(\theta) ) \right)
+\end{align*}
+Therefore, the ratio simplifies to:
+\begin{align*}
+r(Y,\lambda, \theta, \theta_0) =& \left(\frac{|\Sigma (\theta_0)|}{|\Sigma (\theta)|} \right)^{1/2} \\
+&\times \frac{\exp \left( (\lambda - \mu(\theta))^T \Sigma(\theta)^{-1} (\lambda - \mu(\theta) ) \right)}{\exp \left( (\lambda - \mu(\theta_0))^T \Sigma(\theta_0)^{-1} (\lambda - \mu(\theta_0) ) \right)} \\
+\end{align*}
+The pair $(Y^{(j)}, \lambda^{(j)})$ are simulated joint realisations of $X$ and $\lambda$ at $\theta = \theta_0$.  In the first term, $X$ is held fixed and $\lambda^{(j)}$ are conditional on $X$.  Conditional simulation of $\lambda$ requires Markov Chain Monte Carlo (MCMC) methods.  Design, computational issues, and design are detailed by Diggle et al. (2013).  Given a current estimate, $\lambda^\star$, we use a proposal distribution which is a random-walk on the $\log (\lambda^\star)$.
+\begin{equation*}
+\log (\lambda) \sim N \left( \log \left( \lambda^\star\right) , c \cdot \Xi \right)
+\end{equation*}
+where $\Xi = - \text{E} \left[ I(\lambda^\star) \right]^{-1}$.  This is given by $\left[ \text{diag} \left( \lambda \right) + \Sigma^{-1} \right]^{-1}$.  The term $c$ controls the acceptance rate for a random walk proposal so that it is tuned to around $0.234$ percent.
 
-The pair $(X^{(j)}, \lambda^{(j)})$ are simulated joint realisations of $X$ and $\lambda$ at $\theta = \theta_0$.  In the first term, $X$ is held fixed and $\lambda^{(j)}$ are conditional on $X$.  Conditional simulation of $\lambda$ requires Markov Chain Monte Carlo (MCMC) methods.  Design, computational issues, and design are detailed by Diggle et al. (2013).  Algorithm \ref{applik_alg} outlines pseudocode for finding the maximum likelihood estimate, $\hat{\theta}$.
+Algorithm \ref{applik_alg} outlines pseudocode for finding the maximum likelihood estimate, $\hat{\theta}$.
 
 \begin{algorithm}[!h]
 \caption{Block-Approximate Cox Process} \label{applik_alg}
@@ -113,7 +127,15 @@ The pair $(X^{(j)}, \lambda^{(j)})$ are simulated joint realisations of $X$ and 
 \end{algorithmic}
 \end{algorithm}
 
-It rests to choose the estimate $\theta_0 = (\mu_0 , {\bf \sigma}_0^2)$.  We estimate the parameters for each Poisson process independently to get initial estimates for the mean parameters, $\mu_0$.  We take a simple average of the estimated mean squared errors for each station to provide an initial estimate of $\sigma_0^2$.  The starting estimates for the variance components is chosen such that $\sigma_j^2 = \frac{\sigma_1^2}{2}$ for $j = 2,3$.  This is ad-hoc, but unfortunately the choice of starting estimates in this case is less clear.
+It rests to choose the estimate $\theta_0 = (\mu_0 , {\bf \sigma}_0^2)$.  We estimate the parameters for each Poisson process independently to get initial estimates for the mean parameters, $\mu_0$.  We take the simple average of the estimated mean squared errors for each station, $\bar{\sigma}_i^2 = \left( \bar{\sigma}_{i,a}^2 ,\bar{\sigma}_{i,d}^2 \right)$.  This provides an estimate for $\text{var} (Y)$ across stations.   We use the relationship between the variance of the observed counts, and the variance of the stochastic rate parameters.  Since we have assumed the variance to be stationary, we use the conditional variance formula to show that:
+\begin{align*} 
+\text{var} \left( Y \right) &= \text{E} \left[ \text{var} \left( Y | \lambda \right) \right] + \text{var} \left( \text{E} \left[ Y | \lambda \right] \right) \\
+&= \text{E} \left[ \text{diag} (\lambda) \right] + \text{var} \left( \lambda \right) \\
+\end{align*}
+\noindent So we can use the variability of the count data, and subtract the rate parameters from the diagonal to approximate $\text{var}(\lambda)$.  This implies that if we build a semi-variogram, we can use these to estimate $\sigma_1^2$ and $\lambda$.  Moreover, we can estimate the station-level block effects by matching the arrival and departure average mean square errors at the station level, and measuring the correlation, $\hat{\sigma}_1^2 = \frac{1}{n} \sum_i ( \bar{\sigma}_{i,a}^2  \cdot \bar{\sigma}_{i,a}^2 )^2$.  We can then create the initial estimate for the measurement error by
+\begin{equation*}
+\sigma_0^2 \approx \frac{1}{n}\sum_i \left[ \sigma^2_{i,a} - \lambda_{i,a} + \sigma^2_{i,d} - \lambda_{i,d}  - 2\cdot \left(\sigma_1^2 - \sigma_2^2 \right) \right]
+\end{equation*}
 
 \section{A Parallel Approximate Estimation Algorithm} \label{parallel_estimation}
 
@@ -251,6 +273,25 @@ In stochastic gradient descent, the true gradient of the function $\frac{\partia
 \end{equation}
 \noindent We start with the first time window and work forward, shrinking the step size as a rate of $O(n^{\alpha})$ for $\alpha < \frac{1}{2}$ to ensure convergence.  We approximate the derivative of the likelihood based on the Monte Carlo approach outlined in Section~\ref{mc_estimation}.  Given the current estimate, $\hat{\theta}$ we can then update the parameters for each day of data without having to refit the entire model.
 
+This requires calculating the derivative of the likelihood.  We instead calculate the derivative of the approximate log-likelihood.
+\begin{align*}
+\frac{\partial}{\partial \theta} \hat{L} \left( \theta) \right) =& \frac{\sum_{j=1}^s \frac{\partial}{\partial \theta} r \left( Y , \lambda^{(j)} , \theta, \theta_0 \right) }{\sum_{j=1}^s r \left( Y , \lambda^{(j)} , \theta, \theta_0 \right) } \\
+&-\frac{\sum_{j=1}^s \frac{\partial}{\partial \theta} r \left( Y^{(j)} , \lambda^{(j)} , \theta, \theta_0 \right) }{\sum_{j=1}^s r \left( Y^{(j)} , \lambda^{(j)} , \theta, \theta_0 \right) }
+\end{align*}
+So it rests to find the derivative with respect to $\theta$ of $r(Y,\lambda, \theta, \theta_0)$.  We assume that the we have a linear mean model, $\mu(\theta) = X \beta$ and a variance components model, $\Sigma = \sum_k \sigma_k^2 K_k$.  Then taking the derivative with respect to $\beta$ and $\sigma_j^2$:
+\begin{align*}
+\frac{\partial}{\partial \beta} r(X,\lambda, \theta, \theta_0) =& \frac{X^T \Sigma^{-1} \left( \lambda  - X \beta \right) }{\exp \left( (\lambda - \mu(\theta_0))^T \Sigma(\theta_0)^{-1} (\lambda - \mu(\theta_0) ) \right)} \\
+\frac{\partial}{\partial \sigma^2_j} r(X,\lambda, \theta, \theta_0) =& \frac{(\lambda - X \beta)^T \Sigma^{-1} K_j \Sigma^{-1} \left( \lambda  - X \beta \right) }{\exp \left( (\lambda - \mu(\theta_0))^T \Sigma(\theta_0)^{-1} (\lambda - \mu(\theta_0) ) \right)} \\
+\end{align*}
+The numerator in both cases is the typical derivative one would see for normal distributions.  The denominator is constant, and it implies we can further simplify the derivative of the approximate likelihood:
+\begin{align*}
+\frac{\partial}{\partial \beta} \hat{L} \left( \theta) \right) =& \frac{\sum_{j=1}^s X^T \Sigma^{-1} \left( \lambda^{(j)}  - X \beta \right) }{\sum_{j=1}^s  \exp \left( (\lambda^{(j)} - X\beta)^T \Sigma^{-1} (\lambda^{(j)} - X\beta) \right)} \\
+&- \frac{\sum_{j=1}^s X^T \Sigma^{-1} \left( \lambda^{(j)}  - X \beta \right) }{\sum_{j=1}^s  \exp \left( (\lambda^{(j)} - X\beta)^T \Sigma^{-1} (\lambda^{(j)} - X\beta) \right)} \\
+\frac{\partial}{\partial \sigma^2_j} \hat{L} \left( \theta) \right) =& \frac{\sum_{j=1}^s (\lambda^{(j)} - X\beta)^T \Sigma^{-1} K_j \Sigma^{-1} \left( \lambda^{(j)}  - X \beta \right) }{\sum_{j=1}^s  \exp \left( (\lambda^{(j)} - X\beta)^T \Sigma^{-1} (\lambda^{(j)} - X\beta) \right)} \\
+&- \frac{\sum_{j=1}^s (\lambda^{(j)} - X\beta)^T \Sigma^{-1} K_j \Sigma^{-1} \left( \lambda^{(j)}  - X \beta \right) }{\sum_{j=1}^s  \exp \left( (\lambda^{(j)} - X\beta)^T \Sigma^{-1} (\lambda^{(j)} - X\beta) \right)} \\
+\end{align*}
+again where the first term has the $\lambda^{(j)}$ from simulations of the joint distribution given $\theta = \theta_0$ and the latter term has the $\lambda^{(j)}$ from simulations given the data, $Y$, and $\theta = \theta_0$.
+
 In Section~\ref{newstation} we introduced the estimation procedure for parameters associated with a new station.  The stochastic gradient descent algorithm provides a natural mechanism for moving from this initial estimate toward the true Moreover,introduction of a new station may change the rate parameters associated with the neighboring stations.  In that sense, SGD is a consistent and straightforward approach when we wish to .  When we introduce a new station, the step size is increased in order to reflect the potential changes to the parameters.  However, if there are no further changes to the system, the step size decreases again in the same manner such that conditions~\eqref{sgd_conditions} are met.
 
 
@@ -289,7 +330,7 @@ F_1(j, t, \delta) = \sum_{t^\prime = t} \| Y_j(t + \delta) - E_{j,\hat{\theta}} 
 F_2(j, t, \delta) = \sum_{t^\prime = t} \| \Delta_j(t,t + \delta) - P_{j,\hat{\theta}} ( t, t+\delta) \|
 \end{align}
 
-
+\cite{bowman:reasoning}
 
 \vspace{0.25cm}
 {\bf SECTION OUTLINE}
@@ -303,5 +344,7 @@ F_2(j, t, \delta) = \sum_{t^\prime = t} \| \Delta_j(t,t + \delta) - P_{j,\hat{\t
 
 \section{Summary}
 
+\bibliographystyle{plain}
+\bibliography{bibliography}
 
 \end{document}
