@@ -253,11 +253,11 @@ Let $\Delta^{(i)}_j$ be an indicator that the number of bikes at station $j$ rea
 
 \subsection{Proper Distribution of Bikes}
 
-The above provides detailed information that will allow bikeshare companies to redistribute bikes  proactively before stations become empty.  We now answer the question of appropriate distribution of bikes.  That is, before commuting hours, what is the correct distribution of bikes across stations in a city that will minimize the chance of a station becoming extreme? 
+The above provides detailed information that will allow bikeshare companies to redistribute bikes proactively before stations become empty or full.  We now address the question of appropriate distribution of bikes.  That is, before peak commuting times, what is the correct distribution of bikes across stations in a city that will minimize the chance of a station becoming extreme? 
 
-Let $Y$ be a vector containing the number of bikes at each station in the city.  Then we can calculate the probabilty of each stations becoming extreme in the desired time window, $P$.  For example, we may be interested in the time window that lasts from one hour before rush hour to several hours after rush hour ($6$AM to $12$PM for instance).  We then assume some objective function of the probabilities, $f: P \rightarrow \mathbb{R}$.  For example, we may be interested in minimizing the maximum, $f(P) = \max_j P_j$, or in miniming the sum of squares, $f(P) = \sum_j P_j^2$.  
+Let $Y$ be a vector containing the number of bikes at each station in the city.  Then we can calculate the probability of each station becoming extreme in the desired time window, $P$.  For example, we may be interested in the time window that lasts from one hour before rush hour to several hours after rush hour (e.g., $6$A.M to $12$PM).  We then assume some objective function of the probabilities, $f: P \rightarrow \mathbb{R}$.  For instance, we may be interested in minimizing the maximum, $f(P) = \max_j P_j$, or in minimizing the sum of squares, $f(P) = \sum_j P_j^2$.  
 
-The goal is then to find the best allocation of bikes for the city with the constraint on the total number of bikes in the system remaining fixed, $\| Y\|_1 = C$.  In particular,
+The goal is then to find the best allocation of bikes for the city with the constraint that the total number of bikes in the system is fixed, $\| Y\|_1 = C$.  In particular,
 \begin{align*}
 &\max f (P) \\
 \text{s.t. } P = \{ P[ Y_j(s) &\text{ extreme for } s \in (t,t+\delta) | Y_j (t) \} \\
