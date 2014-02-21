@@ -46,4 +46,20 @@ station_10_df.index = station_10_df.index.tz_localize('UTC').tz_convert(timezone
 station_10_df = station_10_df.resample("2MIN")
 station_10_df.to_csv('station_10_june.csv', sep=',')
 
+temp_54 = station_54_df.dropna(axis=0)
+temp_54 = rebalance_station_poisson_data(temp_54, 54, '30MIN', include_rebalance = False)
+delta_54 = temp_54.ix[(temp_54['months'] == 6) & (temp_54['hours'] == 9) & (temp_54['weekday_dummy'] == 1),:]
+corr_54 = delta_54['arrivals']
+corr_54.to_csv('corr_54.csv', sep = ',')
 
+temp_106 = station_106_df.dropna(axis=0)
+temp_106 = rebalance_station_poisson_data(temp_106, 106, '30MIN', include_rebalance = False)
+delta_106 = temp_106.ix[(temp_106['months'] == 6) & (temp_106['hours'] == 9) & (temp_106['weekday_dummy'] == 1),:]
+corr_106 = delta_106['arrivals']
+corr_106.to_csv('corr_106.csv', sep = ',')
+
+temp_10 = station_10_df.dropna(axis=0)
+temp_10 = rebalance_station_poisson_data(temp_10, 10, '30MIN', include_rebalance = False)
+delta_10 = temp_10.ix[(temp_10['months'] == 6) & (temp_10['hours'] == 9) & (temp_10['weekday_dummy'] == 1),:]
+corr_10 = delta_10['arrivals']
+corr_10.to_csv('corr_10.csv', sep = ',')
