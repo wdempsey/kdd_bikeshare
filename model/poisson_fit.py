@@ -41,7 +41,9 @@ def fit_poisson(station_id, include_rebalance = False, initial_time = datetime(2
     dep_poisson_results = dep_poisson_model.fit(disp = 0)
 
     # Calculate Error of the Above Models
-    error = sum((y_arr-arr_poisson_model.fittedvalues())**2)+sum((y_dep-dep_poisson_model.fittedvalues())**2)
+    print type(y_arr-arr_poisson_results.fittedvalues.resid)
+
+    error = sum((y_arr-arr_poisson_results.fittedvalues)**2)+sum((y_dep-dep_poisson_results.fittedvalues)**2) 
 
     # print arr_poisson_results.summary(), dep_poisson_results.summary()
 
@@ -166,7 +168,7 @@ def distinctIds():
 
 def save_poisson_results(include_rebalance = False):
     # Runs the Poisson Fit Code for Each of the Station IDs
-    station_ids = cluster_ids #distinctIds()
+    station_ids = [2] #cluster_ids #distinctIds()
     tag = "rebalanced"
     if (include_rebalance == False):
         tag = "notrebalanced"
