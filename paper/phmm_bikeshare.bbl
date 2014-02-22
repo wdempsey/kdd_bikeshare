@@ -1,0 +1,48 @@
+\begin{thebibliography}{1}
+
+\bibitem{bottou:sgd}
+Leon Bottou.
+\newblock Large-scale machine learning with stochastic gradient descent.
+\newblock {\em COMPSTAT}, pages 177--187, 2010.
+
+\bibitem{chen:lowrank}
+Jie Chen, Nannan Cao, Kian~Hsiang Low, Ruofei Ouyang, Colin Keng-Yan Tan, and
+  Patrick Jaillet.
+\newblock Parallel gaussian process regression with low-rank covariance matrix
+  approximations.
+\newblock {\em Uncertainty in Artificial Intelligence}, 2013.
+
+\bibitem{cunningham:fastppest}
+John~P. Cunningham, Krishna~V. Shenoy, and Maneesh Sahani.
+\newblock Fast gaussian process methods for point process intensity estimation.
+\newblock {\em International Conference on Machine Learning}, 2008.
+
+\bibitem{diggle:spatial}
+Peter~J. Diggle, Paula Moraga, Barry Rowlingson, and Benjamin~M. Taylor.
+\newblock Spatial and spatio-temporal log-gaussian cox processes: Extending the
+  geostatistical paradigm.
+\newblock {\em Statistical Science}, 28(4):465--660, 2013.
+
+\bibitem{geyer:likinf}
+Charles Geyer.
+\newblock Likelihood inference for spatial point processes: Likelihood and
+  computation.
+\newblock {\em Stochastic Gradient Geometry}, 1999.
+
+\bibitem{lin:chou}
+J.~H. Lin and T.~C. Chou.
+\newblock A geo-aware and vrp-based public bicycle redistribution system.
+\newblock {\em International Journal of Vehicular Technology}, 2012.
+
+\bibitem{moller:coxproc}
+Jesper Moller, Anne~Randi Syversveen, and Rasmus~Plenge Waagepetersen.
+\newblock Log gaussian cox processes.
+\newblock {\em Scandinavian Journal of Statistics}, 25(3):451--482, 1998.
+
+\bibitem{stein:spatial}
+Michael~L. Stein.
+\newblock Limitations on low rank approximations for covariance matrices of
+  spatial data.
+\newblock {\em Spatial Statistics}, 2013.
+
+\end{thebibliography}
