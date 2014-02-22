@@ -227,7 +227,7 @@ Our block approximation from section~\ref{parallel_estimation} allows estimation
 \begin{equation*}
 \text{E}_{\hat{\theta}} \left[ Y(t+ \delta) \, | \, Y(t) \right] = Y(t) + E [ \int_{t}^{t+\delta} \hat{\lambda}_a (s) ds ] - E[\int_{t}^{t+\delta} \hat{\lambda}_d (s) ds]
 \end{equation*}
-This requires estimation of the expectation of the integrals.  We assume that the rate parameter is step-wise constant, which simplifies assumptions.  We therefore wish to calculate the expected rate parameter for half-hour time window starting at time~$t$.  To do this, we need to calculate the probability of the rate parameter given the maximum likelihood estimate and the observed counts. The predicted rate parameter is given by:
+This requires estimation of the expectation of the integrals.  We assume that the rate parameter is piecewise constant, which simplifies assumptions.  We therefore wish to calculate the expected rate parameter for half-hour time window starting at time~$t$.  To do this, we need to calculate the probability of the rate parameter given the maximum likelihood estimate and the observed counts. The predicted rate parameter is given by:
 \begin{equation*}
 P [ \lambda_i (t) | Y, \hat{\theta} ] \propto \int_{\Lambda_{-i}} P [ Y | \lambda (t), \hat{\theta} ] P [ \lambda_i (t) | \hat{\theta} ] \prod_{j \neq i} P [ \lambda_j (t) | \hat{\theta} ] d \lambda_j (t)
 \end{equation*}
@@ -334,7 +334,7 @@ In Section~\ref{newstation} we introduced the estimation procedure for parameter
 
 \vspace{0.25cm}
 
-\subsection{Washington D.C. Bikeshare}
+\subsection{Washington, D.C., Bikeshare}
 \vspace{0.25cm}
 We will test our method using data from the Washington, D.C., bikeshare system. This data set consists of station-level reports of the number of bikes and empty slots every minute. We augmented this data with weather data recorded on an hourly basis.
 
@@ -407,9 +407,9 @@ Now we can pick a tolerance level and figure out how many bikes we need to put a
 \vspace{0.5cm}
 
 \section{Summary}
-Moving people around efficiently in cities a fundamental problem in urban planning as city populations continue to grow. Bikeshare widens the transportation options for a city's citizens. Bikeshare also has the capacity to make other public transportation options more feasible by connecting people to bus stops and train stations that are too far to get to on foot. It is a creative approach to a modern transportation problem, and using predictive modeling, we show a method to ensure bikeshare companies have a proactive tool to deal with redistribution issues in their network of stations. Currently, we model bike arrivals and departures at a given station and show how correlation with other stations can be incorporated to gain a better understanding of the state of the entire bikeshare system. We presented an online method that allows parameter estimates to be updated as new data is collected.  We end by exploring the application of our techniques to the Washington D.C. bikeshare system.  
+Bikeshare widens the transportation options for a city's citizens. As city populations continue to grow, moving people around efficiently in cities is a fundamental problem in urban planning. Bikeshare has the capacity to make other public transportation options more feasible by connecting people to bus stops and train stations that are too far to reach on foot. It is a creative approach to a modern transportation problem, and using predictive modeling, we show a method to ensure bikeshare companies have a proactive tool to deal with redistribution issues in their network of stations. Currently, we model bike arrivals and departures at a given station and show how correlation with other stations can be incorporated to gain a better understanding of the state of the entire bikeshare system. We presented an online method that allows parameter estimates to be updated as new data is collected.  We end by exploring the application of our techniques to the Washington D.C. bikeshare system.  
 
-As bikeshare becomes more popular, more granular data will become available.  Already, Washington D.C. and Chicago have released trip level data to the public.  While our methods do not incorporate this data type, we can easily pair our existing framework with this data to get further prediction improvements.  Such a more general framework is future work, but a simple approach would be to only model the departure of bicycles from stations, and then model the movement of the departed bikes to other stations in the system.  As the model improves, we hope it becomes integral to the re-distribution efforts of bikeshare systems throughout the world.
+As bikeshare becomes more popular, more granular data will become available.   Washington, D.C., and Chicago have already released trip-level data to the public.  While our methods do not incorporate this data type, we can easily pair our existing framework with this data to get further prediction improvements. A simple incorporation approach would be to only model the departure of bicycles from stations, and then model the movement of the departed bikes to other stations in the system.  As the model improves, we hope it becomes integral to the redistribution efforts of bikeshare systems throughout the world.
 
 \section{Acknowledgements}
 The authors would like to thank Hunter Owens, Vidhur Vohra, Adam Fishman, Breanna Miller, and Juan-Pablo Velez for their work on this project in its foundational stages. Additionally, they would like to acknowledge the Eric and Wendy Schmidt Foundation Data Science for Social Good Fellowship at the University of Chicago for supporting this work and for fostering the use of analytics for the power of social good.
