@@ -265,7 +265,7 @@ The goal is then to find the best allocation of bikes for the city with the cons
 \text{s.t. } P = \{ P[ Y_j(s) &\text{ extreme for } s \in (t,t+\delta) | Y_j (t) \} \\
 &\text{and } \| Y \|_1 = C
 \end{align*}
-We can add additional constraints that may be necessary in practice.  For example, we may require a certain number of bikes per neighborhood.  The search space is quite large.  Given $C$ total bikes and $N$ total stations, the search space is of size $N^C$.  Therefore, given $f$ and $Y$, we propose a simple simulated annealing approach to finding the global optimum.  Details are given by Bertsimas and Tsitsikis (Statistical Science).
+We can add additional constraints that may be necessary in practice.  For example, we may require a certain number of bikes per neighborhood.  The search space is quite large.  Given $C$ total bikes and $N$ total stations, the search space is of size $N^C$.  Therefore, given $f$ and $Y$, we propose a simple simulated annealing approach to finding the global optimum.  Details are given by Bertsimas and Tsitsikis \cite{bertsimas:simann}.
 
 The annealing approach requires an initial state.  We assume that the system currently is working at least approximately close to an optimum.  Therefore, we take $Y_0$ to be approximately the average number of bikes at each station at time $t$.  Simulated annealing produces $\hat{Y}$.  As we only care about distribution at a few distinct times, we only need to calculate optimum allocation several times. 
 
